@@ -28,11 +28,11 @@ type ExecutionReceipt struct {
 }
 
 type SnapshotV1 struct {
-	Version string           `json:"version"`
-	Input   IntentEnvelope   `json:"input"`
-	Policy  PolicyResult     `json:"policy"`
-	Action  ActionResult     `json:"action"`
-	Receipt ExecutionReceipt `json:"receipt"`
+	Version  string             `json:"version"`
+	Input    IntentEnvelope     `json:"input"`
+	Policy   PolicyResult       `json:"policy"`
+	Action   ActionResult       `json:"action"`
+	Receipts []ExecutionReceipt `json:"receipts"`
 }
 
 type VerifyResult struct {
