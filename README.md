@@ -29,10 +29,11 @@ Intent envelope
 → SHA-256 hash
 → Replay
 → Verification result (PASS / FAIL)
+
 Quick test (2 minutes)
 git clone https://github.com/DigiEmu/digiemu-proof.git
 cd digiemu-proof
-
+``` 
 go test ./...
 
 go run ./cmd/digiemu-proof run input.json
