@@ -9,19 +9,18 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 {
+	if len(os.Args) < 3 {
 		printUsage()
 		os.Exit(1)
 	}
 
-	input := prototype.IntentEnvelope{
-		Intent: "summarize_text",
-		Context: map[string]string{
-			"text": "DigiEmu Core verifies deterministic knowledge states.",
-		},
-	}
+	command := os.Args[1]
+	inputPath := os.Args[2]
 
-	switch os.Args[1] {
+	input, err := readInput(inputPath)
+	exitOnErr(err)
+
+	switch command {
 	case "run":
 		snapshot := prototype.BuildSnapshot(input)
 		hash, err := prototype.HashSnapshot(snapshot)
@@ -33,9 +32,13 @@ func main() {
 		})
 
 	case "verify":
-		snapshot := prototype.BuildSnapshot(input)
-		expectedHash, err := prototype.HashSnapshot(snapshot)
-		exitOnErr(err)
+		if len(os.Args) < 4 {
+			fmt.Fprintln(os.Stderr, "missing expected hash")
+			printUsage()
+			os.Exit(1)
+		}
+
+		expectedHash := os.Args[3]
 
 		result, err := prototype.Verify(input, expectedHash)
 		exitOnErr(err)
@@ -48,6 +51,20 @@ func main() {
 	}
 }
 
+func readInput(path string) (prototype.IntentEnvelope, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return prototype.IntentEnvelope{}, err
+	}
+
+	var input prototype.IntentEnvelope
+	if err := json.Unmarshal(data, &input); err != nil {
+		return prototype.IntentEnvelope{}, err
+	}
+
+	return input, nil
+}
+
 func printJSON(v any) {
 	data, err := json.MarshalIndent(v, "", "  ")
 	exitOnErr(err)
@@ -56,8 +73,8 @@ func printJSON(v any) {
 
 func printUsage() {
 	fmt.Println("Usage:")
-	fmt.Println("  digiemu-proof run")
-	fmt.Println("  digiemu-proof verify")
+	fmt.Println("  digiemu-proof run input.json")
+	fmt.Println("  digiemu-proof verify input.json sha256:<hash>")
 }
 
 func exitOnErr(err error) {

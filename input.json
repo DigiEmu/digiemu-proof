@@ -1,0 +1,6 @@
+{
+  "intent": "summarize_text",
+  "context": {
+    "text": "DigiEmu Core verifies deterministic knowledge states."
+  }
+}
