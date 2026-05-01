@@ -12,15 +12,7 @@ This prototype shows that a small execution path can be:
 - replayed
 - independently verified with PASS / FAIL
 
-Core idea:
+## Core idea
 
 ```text
 same input → same reconstructed state → same hash
-
-## Quick test (2 minutes)
-
-1. Clone the repository
-
-```bash
-git clone https://github.com/DigiEmu/digiemu-proof.git
-cd digiemu-proof
