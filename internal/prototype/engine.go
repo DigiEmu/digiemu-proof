@@ -9,21 +9,49 @@ import (
 func BuildSnapshot(input IntentEnvelope) SnapshotV1 {
 	text := input.Context["text"]
 
+	policy := evaluatePolicy(input)
+
+	action := ActionResult{
+		Type:   "summary",
+		Output: text,
+	}
+
+	receipt := ExecutionReceipt{
+		StepID:     "step.summary.v1",
+		Actor:      "agent.local.v1",
+		ActionType: "summary",
+		InputRef:   "intent.context.text",
+		PolicyRef:  policy.PolicyID,
+		OutputRef:  "action.output",
+		Status:     "completed",
+	}
+
 	return SnapshotV1{
 		Version: "snapshot.v1",
 		Input:   input,
-		Policy: PolicyResult{
-			Policy: "allow_summary",
-			Result: "pass",
-		},
-		Action: ActionResult{
-			Type:   "summary",
-			Output: text,
-		},
-		Receipt: ExecutionReceipt{
-			Step:   "single_agent_summary",
-			Result: "completed",
-		},
+		Policy:  policy,
+		Action:  action,
+		Receipt: receipt,
+	}
+}
+
+func evaluatePolicy(input IntentEnvelope) PolicyResult {
+	text, exists := input.Context["text"]
+
+	if input.Intent == "summarize_text" && exists && text != "" {
+		return PolicyResult{
+			PolicyID:   "policy.allow_summary.v1",
+			Rule:       "intent == summarize_text && context.text != empty",
+			Decision:   "allow",
+			ReasonCode: "TEXT_PRESENT",
+		}
+	}
+
+	return PolicyResult{
+		PolicyID:   "policy.allow_summary.v1",
+		Rule:       "intent == summarize_text && context.text != empty",
+		Decision:   "deny",
+		ReasonCode: "TEXT_MISSING",
 	}
 }
 
