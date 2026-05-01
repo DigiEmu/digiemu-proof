@@ -70,3 +70,8 @@ execution → receipt → state → replay → verification
 ```
 
 The goal is to show that a small agent execution path can be reconstructed and independently verified.
+
+## Versions
+
+- `v0.1.0` — minimal deterministic execution proof  
+- `v0.2` — minimal receipt + policy boundary model

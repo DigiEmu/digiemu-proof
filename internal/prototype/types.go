@@ -6,8 +6,10 @@ type IntentEnvelope struct {
 }
 
 type PolicyResult struct {
-	Policy string `json:"policy"`
-	Result string `json:"result"`
+	PolicyID   string `json:"policy_id"`
+	Rule       string `json:"rule"`
+	Decision   string `json:"decision"`
+	ReasonCode string `json:"reason_code"`
 }
 
 type ActionResult struct {
@@ -16,8 +18,13 @@ type ActionResult struct {
 }
 
 type ExecutionReceipt struct {
-	Step   string `json:"step"`
-	Result string `json:"result"`
+	StepID     string `json:"step_id"`
+	Actor      string `json:"actor"`
+	ActionType string `json:"action_type"`
+	InputRef   string `json:"input_ref"`
+	PolicyRef  string `json:"policy_ref"`
+	OutputRef  string `json:"output_ref"`
+	Status     string `json:"status"`
 }
 
 type SnapshotV1 struct {
