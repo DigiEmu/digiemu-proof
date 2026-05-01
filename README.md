@@ -16,11 +16,7 @@ This prototype shows that a small execution path can be:
 
 ```text
 same input → same reconstructed state → same hash
-```
-
-## Flow
-
-```text
+Flow
 Intent envelope
 → Policy check
 → Deterministic action
@@ -28,50 +24,44 @@ Intent envelope
 → Canonical snapshot
 → SHA-256 hash
 → Replay
-→ Verification result
-```
-
-## Quick test (2 minutes)
-
-```bash
+→ Verification result (PASS / FAIL)
+Quick test (2 minutes)
 git clone https://github.com/DigiEmu/digiemu-proof.git
 cd digiemu-proof
+
 go test ./...
+
 go run ./cmd/digiemu-proof run input.json
-go run ./cmd/digiemu-proof verify input.json sha256:4ce910afcf002a5209ce6a1aed790e6238a0a6385867777e7ce3e26c651168ed
-```
+
+go run ./cmd/digiemu-proof verify input.json sha256:9cde21367e09774964536e53d1e446c6ab9d18a6e36a964a60c6238f35463df4
 
 Expected result:
 
-```json
 {
   "status": "PASS",
-  "expected_hash": "sha256:4ce910afcf002a5209ce6a1aed790e6238a0a6385867777e7ce3e26c651168ed",
-  "actual_hash": "sha256:4ce910afcf002a5209ce6a1aed790e6238a0a6385867777e7ce3e26c651168ed",
+  "expected_hash": "sha256:9cde21367e09774964536e53d1e446c6ab9d18a6e36a964a60c6238f35463df4",
+  "actual_hash": "sha256:9cde21367e09774964536e53d1e446c6ab9d18a6e36a964a60c6238f35463df4",
   "match": true
 }
-```
-
-## Determinism constraints
-
-No timestamps  
-No randomness  
-No hidden state  
-No nondeterministic LLM output in the proof path  
+Determinism constraints
+No timestamps
+No randomness
+No hidden state
+No nondeterministic LLM output in the proof path
 
 Everything that affects the hash must be reproducible.
 
-## Purpose
+Boundary principle
+Inside hash: deterministic, replayable state only
+Outside hash: metadata, timestamps, human context
+Purpose
 
 This prototype is a first step toward verifiable AI governance:
 
-```text
 execution → receipt → state → replay → verification
-```
 
 The goal is to show that a small agent execution path can be reconstructed and independently verified.
 
-## Versions
-
-- `v0.1.0` — minimal deterministic execution proof  
-- `v0.2` — minimal receipt + policy boundary model
+Versions
+v0.1.0 — minimal deterministic execution proof
+v0.2 — minimal receipt + policy boundary model (current stable)
