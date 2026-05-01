@@ -16,22 +16,42 @@ func BuildSnapshot(input IntentEnvelope) SnapshotV1 {
 		Output: text,
 	}
 
-	receipt := ExecutionReceipt{
-		StepID:     "step.summary.v1",
-		Actor:      "agent.local.v1",
-		ActionType: "summary",
-		InputRef:   "intent.context.text",
-		PolicyRef:  policy.PolicyID,
-		OutputRef:  "action.output",
-		Status:     "completed",
+	receipts := []ExecutionReceipt{
+		{
+			StepID:     "step.policy_check.v1",
+			Actor:      "policy.local.v1",
+			ActionType: "policy_check",
+			InputRef:   "intent.context.text",
+			PolicyRef:  policy.PolicyID,
+			OutputRef:  "policy.decision",
+			Status:     "completed",
+		},
+		{
+			StepID:     "step.summary.v1",
+			Actor:      "agent.local.v1",
+			ActionType: "summary",
+			InputRef:   "intent.context.text",
+			PolicyRef:  policy.PolicyID,
+			OutputRef:  "action.output",
+			Status:     "completed",
+		},
+		{
+			StepID:     "step.output_validation.v1",
+			Actor:      "validator.local.v1",
+			ActionType: "validate_output",
+			InputRef:   "action.output",
+			PolicyRef:  policy.PolicyID,
+			OutputRef:  "validation.result",
+			Status:     "completed",
+		},
 	}
 
 	return SnapshotV1{
-		Version: "snapshot.v1",
-		Input:   input,
-		Policy:  policy,
-		Action:  action,
-		Receipt: receipt,
+		Version:  "snapshot.v1",
+		Input:    input,
+		Policy:   policy,
+		Action:   action,
+		Receipts: receipts,
 	}
 }
 
