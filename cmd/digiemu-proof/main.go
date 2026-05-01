@@ -44,6 +44,20 @@ func main() {
 
 		printJSON(proofPackage)
 
+	case "validate":
+		snapshot := prototype.BuildSnapshot(input)
+		issues := prototype.ValidateReceiptReferences(snapshot)
+
+		status := "PASS"
+		if len(issues) > 0 {
+			status = "FAIL"
+		}
+
+		printJSON(map[string]any{
+			"status": status,
+			"issues": issues,
+		})
+
 	case "verify":
 		if len(os.Args) < 4 {
 			fmt.Fprintln(os.Stderr, "missing expected hash")
@@ -89,6 +103,7 @@ func printUsage() {
 	fmt.Println("  digiemu-proof run input.json")
 	fmt.Println("  digiemu-proof verify input.json sha256:<hash>")
 	fmt.Println("  digiemu-proof package input.json")
+	fmt.Println("  digiemu-proof validate input.json")
 }
 
 func exitOnErr(err error) {

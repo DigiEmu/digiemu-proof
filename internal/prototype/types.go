@@ -54,3 +54,10 @@ type ProofPackage struct {
 	Hash     string        `json:"hash"`
 	Metadata AuditMetadata `json:"metadata"`
 }
+
+type ValidationIssue struct {
+	ReceiptStepID string `json:"receipt_step_id"`
+	Field         string `json:"field"`
+	Ref           string `json:"ref"`
+	Reason        string `json:"reason"`
+}
