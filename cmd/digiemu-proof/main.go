@@ -31,6 +31,19 @@ func main() {
 			"hash":     hash,
 		})
 
+	case "package":
+		metadata := prototype.AuditMetadata{
+			CreatedBy:   "Bruno Baumgartner",
+			Reviewer:    "Gregory Whited",
+			Note:        "Human-readable audit context outside the hash boundary.",
+			Environment: "local prototype",
+		}
+
+		proofPackage, err := prototype.BuildProofPackage(input, metadata)
+		exitOnErr(err)
+
+		printJSON(proofPackage)
+
 	case "verify":
 		if len(os.Args) < 4 {
 			fmt.Fprintln(os.Stderr, "missing expected hash")
@@ -75,6 +88,7 @@ func printUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("  digiemu-proof run input.json")
 	fmt.Println("  digiemu-proof verify input.json sha256:<hash>")
+	fmt.Println("  digiemu-proof package input.json")
 }
 
 func exitOnErr(err error) {

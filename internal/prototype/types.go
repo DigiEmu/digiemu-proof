@@ -41,3 +41,16 @@ type VerifyResult struct {
 	ActualHash   string `json:"actual_hash"`
 	Match        bool   `json:"match"`
 }
+
+type AuditMetadata struct {
+	CreatedBy   string `json:"created_by"`
+	Reviewer    string `json:"reviewer"`
+	Note        string `json:"note"`
+	Environment string `json:"environment"`
+}
+
+type ProofPackage struct {
+	Snapshot SnapshotV1    `json:"snapshot"`
+	Hash     string        `json:"hash"`
+	Metadata AuditMetadata `json:"metadata"`
+}

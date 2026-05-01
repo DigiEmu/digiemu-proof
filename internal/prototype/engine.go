@@ -91,3 +91,18 @@ func Verify(input IntentEnvelope, expectedHash string) (VerifyResult, error) {
 		Match:        match,
 	}, nil
 }
+
+func BuildProofPackage(input IntentEnvelope, metadata AuditMetadata) (ProofPackage, error) {
+	snapshot := BuildSnapshot(input)
+
+	hash, err := HashSnapshot(snapshot)
+	if err != nil {
+		return ProofPackage{}, err
+	}
+
+	return ProofPackage{
+		Snapshot: snapshot,
+		Hash:     hash,
+		Metadata: metadata,
+	}, nil
+}
