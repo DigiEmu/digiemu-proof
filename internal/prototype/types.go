@@ -96,3 +96,23 @@ type ChainVerifyResultV07 struct {
 	Match  bool     `json:"match"`
 	Issues []string `json:"issues"`
 }
+
+type TransitionReceiptV08 struct {
+	StepID     string `json:"step_id"`
+	Actor      string `json:"actor"`
+	ActionType string `json:"action_type"`
+
+	IntentID       string `json:"intent_id"`
+	PolicyID       string `json:"policy_id"`
+	PolicyDecision string `json:"policy_decision"`
+	ActionID       string `json:"action_id"`
+
+	InputRef  string `json:"input_ref"`
+	PolicyRef string `json:"policy_ref"`
+	OutputRef string `json:"output_ref"`
+
+	PrevStateHash string `json:"prev_state_hash"`
+	NextStateHash string `json:"next_state_hash"`
+
+	Status string `json:"status"`
+}
