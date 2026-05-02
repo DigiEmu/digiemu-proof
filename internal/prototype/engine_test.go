@@ -188,6 +188,55 @@ func TestVerifyTransitionV06FailsOnTamperedNextState(t *testing.T) {
 	}
 }
 
+func TestVerifyTransitionReceiptV08FailsOnPolicyDecisionMismatch(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v08"
+
+	prevHash, err := HashCanonicalStateV06(state0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nextHash, err := HashCanonicalStateV06(state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	receipt := TransitionReceiptV08{
+		StepID:         "step-1",
+		Actor:          "test-runner",
+		ActionType:     state0.Action.Type,
+		IntentID:       state0.Intent.ID,
+		PolicyID:       state0.Policy.ID,
+		PolicyDecision: "deny",
+		ActionID:       state0.Action.ID,
+		InputRef:       state0.Intent.InputRef,
+		PolicyRef:      state0.Policy.ID,
+		OutputRef:      state0.Action.OutputRef,
+		PrevStateHash:  prevHash,
+		NextStateHash:  nextHash,
+		Status:         "PASS",
+	}
+
+	result, err := VerifyTransitionReceiptV08(state0, receipt, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected mismatch")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "policy_decision mismatch" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
 func TestVerifyChainV07Pass(t *testing.T) {
 	state0 := CanonicalStateV06{
 		SchemaVersion: "canonical-state.v0.6",
