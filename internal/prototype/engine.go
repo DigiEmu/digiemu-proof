@@ -163,6 +163,8 @@ func VerifyTransitionV06(
 ) (TransitionVerifyResultV06, error) {
 	issues := []string{}
 
+	// --- ALL checks first ---
+
 	prevHash, err := HashCanonicalStateV06(prevState)
 	if err != nil {
 		return TransitionVerifyResultV06{}, err
@@ -193,26 +195,30 @@ func VerifyTransitionV06(
 		issues = append(issues, "output_ref mismatch")
 	}
 
+	// NEW: independent derivation check
+	derivedNextState := DeriveNextStateV06(prevState)
+
+	derivedNextHash, err := HashCanonicalStateV06(derivedNextState)
+	if err != nil {
+		return TransitionVerifyResultV06{}, err
+	}
+
+	if derivedNextHash != nextHash {
+		issues = append(issues, "derived_next_state mismatch")
+	}
+
+	// existing check
 	if prevState.Policy.Decision == "allow" && nextState.Refs[prevState.Action.OutputRef] == "" {
 		issues = append(issues, "expected output ref missing in next state")
 	}
+
+	// --- FINAL evaluation AFTER all checks ---
 
 	match := len(issues) == 0
 	status := "FAIL"
 	if match {
 		status = "PASS"
 	}
-
-	derivedNextState := DeriveNextStateV06(prevState)
-
-derivedNextHash, err := HashCanonicalStateV06(derivedNextState)
-if err != nil {
-	return TransitionVerifyResultV06{}, err
-}
-
-if derivedNextHash != nextHash {
-	issues = append(issues, "derived_next_state mismatch")
-}
 
 	return TransitionVerifyResultV06{
 		Status: status,
