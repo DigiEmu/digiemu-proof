@@ -134,20 +134,7 @@ func BuildTransitionV06(state CanonicalStateV06) (TransitionReceiptV06, Canonica
 		return TransitionReceiptV06{}, CanonicalStateV06{}, err
 	}
 
-	nextState := state
-
-	if nextState.Refs == nil {
-		nextState.Refs = map[string]string{}
-	}
-
-	// Deterministic transition:
-	// If input.text.v1 exists, produce output.summary.v1 deterministically.
-	inputHash := nextState.Refs["input.text.v1"]
-	policyHash := nextState.Refs["policy.allow_summary.v1"]
-
-	if inputHash != "" && policyHash != "" && nextState.Policy.Decision == "allow" {
-		nextState.Refs["output.summary.v1"] = HashStringV06("DigiEmu Core verifies deterministic knowledge states.")
-	}
+	nextState := DeriveNextStateV06(state)
 
 	nextHash, err := HashCanonicalStateV06(nextState)
 	if err != nil {
@@ -169,7 +156,92 @@ func BuildTransitionV06(state CanonicalStateV06) (TransitionReceiptV06, Canonica
 	return receipt, nextState, nil
 }
 
+func VerifyTransitionV06(
+	prevState CanonicalStateV06,
+	receipt TransitionReceiptV06,
+	nextState CanonicalStateV06,
+) (TransitionVerifyResultV06, error) {
+	issues := []string{}
+
+	prevHash, err := HashCanonicalStateV06(prevState)
+	if err != nil {
+		return TransitionVerifyResultV06{}, err
+	}
+
+	nextHash, err := HashCanonicalStateV06(nextState)
+	if err != nil {
+		return TransitionVerifyResultV06{}, err
+	}
+
+	if receipt.PrevStateHash != prevHash {
+		issues = append(issues, "prev_state_hash mismatch")
+	}
+
+	if receipt.NextStateHash != nextHash {
+		issues = append(issues, "next_state_hash mismatch")
+	}
+
+	if receipt.InputRef != prevState.Intent.InputRef {
+		issues = append(issues, "input_ref mismatch")
+	}
+
+	if receipt.PolicyRef != prevState.Policy.ID {
+		issues = append(issues, "policy_ref mismatch")
+	}
+
+	if receipt.OutputRef != prevState.Action.OutputRef {
+		issues = append(issues, "output_ref mismatch")
+	}
+
+	if prevState.Policy.Decision == "allow" && nextState.Refs[prevState.Action.OutputRef] == "" {
+		issues = append(issues, "expected output ref missing in next state")
+	}
+
+	match := len(issues) == 0
+	status := "FAIL"
+	if match {
+		status = "PASS"
+	}
+
+	derivedNextState := DeriveNextStateV06(prevState)
+
+derivedNextHash, err := HashCanonicalStateV06(derivedNextState)
+if err != nil {
+	return TransitionVerifyResultV06{}, err
+}
+
+if derivedNextHash != nextHash {
+	issues = append(issues, "derived_next_state mismatch")
+}
+
+	return TransitionVerifyResultV06{
+		Status: status,
+		Match:  match,
+		Issues: issues,
+	}, nil
+}
+
 func HashStringV06(value string) string {
 	sum := sha256.Sum256([]byte(value))
 	return "sha256:" + hex.EncodeToString(sum[:])
+}
+
+func DeriveNextStateV06(state CanonicalStateV06) CanonicalStateV06 {
+	nextState := state
+	nextState.Refs = map[string]string{}
+
+	if state.Refs != nil {
+		for key, value := range state.Refs {
+			nextState.Refs[key] = value
+		}
+	}
+
+	inputHash := nextState.Refs["input.text.v1"]
+	policyHash := nextState.Refs["policy.allow_summary.v1"]
+
+	if inputHash != "" && policyHash != "" && nextState.Policy.Decision == "allow" {
+		nextState.Refs["output.summary.v1"] = HashStringV06("DigiEmu Core verifies deterministic knowledge states.")
+	}
+
+	return nextState
 }
