@@ -275,8 +275,8 @@ func VerifyChainV07(chain TransitionChainV07) (ChainVerifyResultV07, error) {
 			return ChainVerifyResultV07{}, err
 		}
 		if !res.Match {
-	issues = append(issues, "transition_"+r.StepID+" invalid")
-}
+			issues = append(issues, "transition_"+r.StepID+" invalid")
+		}
 
 		// b) Hash-Kontinuität
 		prevHash, _ := HashCanonicalStateV06(prev)
@@ -309,5 +309,77 @@ func VerifyChainV07(chain TransitionChainV07) (ChainVerifyResultV07, error) {
 		Status: status,
 		Match:  match,
 		Issues: issues,
+	}, nil
+}
+
+func VerifyTransitionReceiptV08(
+	prevState CanonicalStateV06,
+	receipt TransitionReceiptV08,
+	nextState CanonicalStateV06,
+) (TransitionVerifyResultV06, error) {
+	issues := []string{}
+
+	prevHash, err := HashCanonicalStateV06(prevState)
+	if err != nil {
+		return TransitionVerifyResultV06{}, err
+	}
+
+	nextHash, err := HashCanonicalStateV06(nextState)
+	if err != nil {
+		return TransitionVerifyResultV06{}, err
+	}
+
+	if receipt.PrevStateHash != prevHash {
+		issues = append(issues, "prev_state_hash mismatch")
+	}
+
+	if receipt.NextStateHash != nextHash {
+		issues = append(issues, "next_state_hash mismatch")
+	}
+
+	if receipt.IntentID != prevState.Intent.ID {
+		issues = append(issues, "intent_id mismatch")
+	}
+
+	if receipt.PolicyID != prevState.Policy.ID {
+		issues = append(issues, "policy_id mismatch")
+	}
+
+	if receipt.PolicyDecision != prevState.Policy.Decision {
+		issues = append(issues, "policy_decision mismatch")
+	}
+
+	if receipt.ActionID != prevState.Action.ID {
+		issues = append(issues, "action_id mismatch")
+	}
+
+	if receipt.ActionType != prevState.Action.Type {
+		issues = append(issues, "action_type mismatch")
+	}
+
+	if receipt.InputRef != prevState.Intent.InputRef {
+		issues = append(issues, "input_ref mismatch")
+	}
+
+	if receipt.PolicyRef != prevState.Policy.ID {
+		issues = append(issues, "policy_ref mismatch")
+	}
+
+	if receipt.OutputRef != prevState.Action.OutputRef {
+		issues = append(issues, "output_ref mismatch")
+	}
+
+	if len(issues) > 0 {
+		return TransitionVerifyResultV06{
+			Status: "FAIL",
+			Match:  false,
+			Issues: issues,
+		}, nil
+	}
+
+	return TransitionVerifyResultV06{
+		Status: "PASS",
+		Match:  true,
+		Issues: []string{},
 	}, nil
 }
