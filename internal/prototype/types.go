@@ -28,11 +28,11 @@ type ExecutionReceipt struct {
 }
 
 type SnapshotV1 struct {
-	Version  string             `json:"version"`
-	Input    IntentEnvelope     `json:"input"`
-	Policy   PolicyResult       `json:"policy"`
-	Action   ActionResult       `json:"action"`
-	Receipts []ExecutionReceipt `json:"receipts"`
+	Version string           `json:"version"`
+	Input   IntentEnvelope   `json:"input"`
+	Policy  PolicyResult     `json:"policy"`
+	Action  ActionResult     `json:"action"`
+	Receipt ExecutionReceipt `json:"receipt"`
 }
 
 type VerifyResult struct {
@@ -40,24 +40,4 @@ type VerifyResult struct {
 	ExpectedHash string `json:"expected_hash"`
 	ActualHash   string `json:"actual_hash"`
 	Match        bool   `json:"match"`
-}
-
-type AuditMetadata struct {
-	CreatedBy   string `json:"created_by"`
-	Reviewer    string `json:"reviewer"`
-	Note        string `json:"note"`
-	Environment string `json:"environment"`
-}
-
-type ProofPackage struct {
-	Snapshot SnapshotV1    `json:"snapshot"`
-	Hash     string        `json:"hash"`
-	Metadata AuditMetadata `json:"metadata"`
-}
-
-type ValidationIssue struct {
-	ReceiptStepID string `json:"receipt_step_id"`
-	Field         string `json:"field"`
-	Ref           string `json:"ref"`
-	Reason        string `json:"reason"`
 }

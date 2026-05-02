@@ -6,72 +6,78 @@ import (
 	"encoding/json"
 )
 
+const (
+	SnapshotVersion = "snapshot.v1"
+
+	PolicyAllowSummaryV1 = "policy.allow_summary.v1"
+	PolicyRuleSummaryV1  = "intent == summarize_text && context.text != empty"
+
+	StepSummaryV1 = "step.summary.v1"
+	ActorLocalV1  = "agent.local.v1"
+)
+
 func BuildSnapshot(input IntentEnvelope) SnapshotV1 {
-	text := input.Context["text"]
-
-	policy := evaluatePolicy(input)
-
-	action := ActionResult{
-		Type:   "summary",
-		Output: text,
-	}
-
-	receipts := []ExecutionReceipt{
-		{
-			StepID:     "step.policy_check.v1",
-			Actor:      "policy.local.v1",
-			ActionType: "policy_check",
-			InputRef:   "intent.context.text",
-			PolicyRef:  policy.PolicyID,
-			OutputRef:  "policy.decision",
-			Status:     "completed",
-		},
-		{
-			StepID:     "step.summary.v1",
-			Actor:      "agent.local.v1",
-			ActionType: "summary",
-			InputRef:   "intent.context.text",
-			PolicyRef:  policy.PolicyID,
-			OutputRef:  "action.output",
-			Status:     "completed",
-		},
-		{
-			StepID:     "step.output_validation.v1",
-			Actor:      "validator.local.v1",
-			ActionType: "validate_output",
-			InputRef:   "action.output",
-			PolicyRef:  policy.PolicyID,
-			OutputRef:  "validation.result",
-			Status:     "completed",
-		},
-	}
+	policy := EvaluatePolicy(input)
+	action := ExecuteAction(input, policy)
+	receipt := BuildReceipt(policy, action)
 
 	return SnapshotV1{
-		Version:  "snapshot.v1",
-		Input:    input,
-		Policy:   policy,
-		Action:   action,
-		Receipts: receipts,
+		Version: SnapshotVersion,
+		Input:   input,
+		Policy:  policy,
+		Action:  action,
+		Receipt: receipt,
 	}
 }
 
-func evaluatePolicy(input IntentEnvelope) PolicyResult {
-	text, exists := input.Context["text"]
+func EvaluatePolicy(input IntentEnvelope) PolicyResult {
+	text := input.Context["text"]
 
-	if input.Intent == "summarize_text" && exists && text != "" {
+	if input.Intent == "summarize_text" && text != "" {
 		return PolicyResult{
-			PolicyID:   "policy.allow_summary.v1",
-			Rule:       "intent == summarize_text && context.text != empty",
+			PolicyID:   PolicyAllowSummaryV1,
+			Rule:       PolicyRuleSummaryV1,
 			Decision:   "allow",
 			ReasonCode: "TEXT_PRESENT",
 		}
 	}
 
 	return PolicyResult{
-		PolicyID:   "policy.allow_summary.v1",
-		Rule:       "intent == summarize_text && context.text != empty",
+		PolicyID:   PolicyAllowSummaryV1,
+		Rule:       PolicyRuleSummaryV1,
 		Decision:   "deny",
-		ReasonCode: "TEXT_MISSING",
+		ReasonCode: "TEXT_MISSING_OR_UNSUPPORTED_INTENT",
+	}
+}
+
+func ExecuteAction(input IntentEnvelope, policy PolicyResult) ActionResult {
+	if policy.Decision != "allow" {
+		return ActionResult{
+			Type:   "summary",
+			Output: "",
+		}
+	}
+
+	return ActionResult{
+		Type:   "summary",
+		Output: input.Context["text"],
+	}
+}
+
+func BuildReceipt(policy PolicyResult, action ActionResult) ExecutionReceipt {
+	status := "completed"
+	if policy.Decision != "allow" {
+		status = "blocked"
+	}
+
+	return ExecutionReceipt{
+		StepID:     StepSummaryV1,
+		Actor:      ActorLocalV1,
+		ActionType: action.Type,
+		InputRef:   "intent.context.text",
+		PolicyRef:  policy.PolicyID,
+		OutputRef:  "action.output",
+		Status:     status,
 	}
 }
 
@@ -109,20 +115,5 @@ func Verify(input IntentEnvelope, expectedHash string) (VerifyResult, error) {
 		ExpectedHash: expectedHash,
 		ActualHash:   actualHash,
 		Match:        match,
-	}, nil
-}
-
-func BuildProofPackage(input IntentEnvelope, metadata AuditMetadata) (ProofPackage, error) {
-	snapshot := BuildSnapshot(input)
-
-	hash, err := HashSnapshot(snapshot)
-	if err != nil {
-		return ProofPackage{}, err
-	}
-
-	return ProofPackage{
-		Snapshot: snapshot,
-		Hash:     hash,
-		Metadata: metadata,
 	}, nil
 }
