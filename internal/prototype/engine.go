@@ -117,3 +117,59 @@ func Verify(input IntentEnvelope, expectedHash string) (VerifyResult, error) {
 		Match:        match,
 	}, nil
 }
+
+func HashCanonicalStateV06(state CanonicalStateV06) (string, error) {
+	bytes, err := json.Marshal(state)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256(bytes)
+	return "sha256:" + hex.EncodeToString(hash[:]), nil
+}
+
+func BuildTransitionV06(state CanonicalStateV06) (TransitionReceiptV06, CanonicalStateV06, error) {
+	prevHash, err := HashCanonicalStateV06(state)
+	if err != nil {
+		return TransitionReceiptV06{}, CanonicalStateV06{}, err
+	}
+
+	nextState := state
+
+	if nextState.Refs == nil {
+		nextState.Refs = map[string]string{}
+	}
+
+	// Deterministic transition:
+	// If input.text.v1 exists, produce output.summary.v1 deterministically.
+	inputHash := nextState.Refs["input.text.v1"]
+	policyHash := nextState.Refs["policy.allow_summary.v1"]
+
+	if inputHash != "" && policyHash != "" && nextState.Policy.Decision == "allow" {
+		nextState.Refs["output.summary.v1"] = HashStringV06("DigiEmu Core verifies deterministic knowledge states.")
+	}
+
+	nextHash, err := HashCanonicalStateV06(nextState)
+	if err != nil {
+		return TransitionReceiptV06{}, CanonicalStateV06{}, err
+	}
+
+	receipt := TransitionReceiptV06{
+		StepID:        "step.summary.v1",
+		Actor:         "agent.local.v1",
+		ActionType:    "summary",
+		InputRef:      state.Intent.InputRef,
+		PolicyRef:     state.Policy.ID,
+		OutputRef:     state.Action.OutputRef,
+		PrevStateHash: prevHash,
+		NextStateHash: nextHash,
+		Status:        "completed",
+	}
+
+	return receipt, nextState, nil
+}
+
+func HashStringV06(value string) string {
+	sum := sha256.Sum256([]byte(value))
+	return "sha256:" + hex.EncodeToString(sum[:])
+}
