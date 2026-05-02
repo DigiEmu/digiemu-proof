@@ -135,9 +135,10 @@ func BuildTransitionV06(state CanonicalStateV06) (TransitionReceiptV06, Canonica
 	}
 
 	nextState := state
+	nextState.Refs = map[string]string{}
 
-	if nextState.Refs == nil {
-		nextState.Refs = map[string]string{}
+	for key, value := range state.Refs {
+		nextState.Refs[key] = value
 	}
 
 	// Deterministic transition:
@@ -172,4 +173,58 @@ func BuildTransitionV06(state CanonicalStateV06) (TransitionReceiptV06, Canonica
 func HashStringV06(value string) string {
 	sum := sha256.Sum256([]byte(value))
 	return "sha256:" + hex.EncodeToString(sum[:])
+}
+
+func VerifyTransitionV06(
+	prevState CanonicalStateV06,
+	receipt TransitionReceiptV06,
+	nextState CanonicalStateV06,
+) (TransitionVerifyResultV06, error) {
+	issues := []string{}
+
+	prevHash, err := HashCanonicalStateV06(prevState)
+	if err != nil {
+		return TransitionVerifyResultV06{}, err
+	}
+
+	nextHash, err := HashCanonicalStateV06(nextState)
+	if err != nil {
+		return TransitionVerifyResultV06{}, err
+	}
+
+	if receipt.PrevStateHash != prevHash {
+		issues = append(issues, "prev_state_hash mismatch")
+	}
+
+	if receipt.NextStateHash != nextHash {
+		issues = append(issues, "next_state_hash mismatch")
+	}
+
+	if receipt.InputRef != prevState.Intent.InputRef {
+		issues = append(issues, "input_ref mismatch")
+	}
+
+	if receipt.PolicyRef != prevState.Policy.ID {
+		issues = append(issues, "policy_ref mismatch")
+	}
+
+	if receipt.OutputRef != prevState.Action.OutputRef {
+		issues = append(issues, "output_ref mismatch")
+	}
+
+	if prevState.Policy.Decision == "allow" && nextState.Refs[prevState.Action.OutputRef] == "" {
+		issues = append(issues, "expected output ref missing in next state")
+	}
+
+	match := len(issues) == 0
+	status := "FAIL"
+	if match {
+		status = "PASS"
+	}
+
+	return TransitionVerifyResultV06{
+		Status: status,
+		Match:  match,
+		Issues: issues,
+	}, nil
 }

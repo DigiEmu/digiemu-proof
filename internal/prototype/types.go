@@ -41,3 +41,49 @@ type VerifyResult struct {
 	ActualHash   string `json:"actual_hash"`
 	Match        bool   `json:"match"`
 }
+
+// --- v0.6 Canonical State ---
+
+type CanonicalStateV06 struct {
+	SchemaVersion string            `json:"schema_version"`
+	Intent        IntentRef         `json:"intent"`
+	Policy        PolicyRef         `json:"policy"`
+	Action        ActionRef         `json:"action"`
+	Refs          map[string]string `json:"refs"`
+}
+
+type IntentRef struct {
+	ID       string `json:"id"`
+	InputRef string `json:"input_ref"`
+}
+
+type PolicyRef struct {
+	ID       string `json:"id"`
+	Decision string `json:"decision"`
+}
+
+type ActionRef struct {
+	ID        string `json:"id"`
+	Type      string `json:"type"`
+	OutputRef string `json:"output_ref"`
+}
+
+// --- v0.6 Transition Receipt ---
+
+type TransitionReceiptV06 struct {
+	StepID        string `json:"step_id"`
+	Actor         string `json:"actor"`
+	ActionType    string `json:"action_type"`
+	InputRef      string `json:"input_ref"`
+	PolicyRef     string `json:"policy_ref"`
+	OutputRef     string `json:"output_ref"`
+	PrevStateHash string `json:"prev_state_hash"`
+	NextStateHash string `json:"next_state_hash"`
+	Status        string `json:"status"`
+}
+
+type TransitionVerifyResultV06 struct {
+	Status string   `json:"status"`
+	Match  bool     `json:"match"`
+	Issues []string `json:"issues"`
+}

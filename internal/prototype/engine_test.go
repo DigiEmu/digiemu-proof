@@ -144,3 +144,44 @@ func TestTransitionV06CreatesVisibleStateChange(t *testing.T) {
 		t.Fatalf("expected next_state_hash %s, got %s", nextHash, receipt.NextStateHash)
 	}
 }
+
+func TestVerifyTransitionV06Pass(t *testing.T) {
+	state0 := CanonicalStateV06{
+		SchemaVersion: "canonical-state.v0.6",
+		Intent: IntentRef{
+			ID:       "intent.summary.v1",
+			InputRef: "input.text.v1",
+		},
+		Policy: PolicyRef{
+			ID:       "policy.allow_summary.v1",
+			Decision: "allow",
+		},
+		Action: ActionRef{
+			ID:        "action.summary.v1",
+			Type:      "summary",
+			OutputRef: "output.summary.v1",
+		},
+		Refs: map[string]string{
+			"input.text.v1":           HashStringV06("DigiEmu Core verifies deterministic knowledge states."),
+			"policy.allow_summary.v1": HashStringV06("intent == summarize_text && context.text != empty"),
+		},
+	}
+
+	receipt, state1, err := BuildTransitionV06(state0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyTransitionV06(state0, receipt, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Status != "PASS" {
+		t.Fatalf("expected PASS, got %s: %v", result.Status, result.Issues)
+	}
+
+	if !result.Match {
+		t.Fatal("expected transition match")
+	}
+}
