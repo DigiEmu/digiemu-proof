@@ -227,3 +227,104 @@ func TestVerifyChainV07Pass(t *testing.T) {
 		t.Fatalf("expected PASS, got FAIL: %v", res.Issues)
 	}
 }
+func TestVerifyChainV07FailsOnTamperedState(t *testing.T) {
+	state0 := buildInitialState()
+
+	r1, state1, _ := BuildTransitionV06(state0)
+	r2, state2, _ := BuildTransitionV06(state1)
+
+	// Manipulation
+	state1.Refs["output.summary.v1"] = HashStringV06("tampered")
+
+	chain := TransitionChainV07{
+		States:   []CanonicalStateV06{state0, state1, state2},
+		Receipts: []TransitionReceiptV06{r1, r2},
+	}
+
+	res, _ := VerifyChainV07(chain)
+
+	if res.Match {
+		t.Fatal("expected FAIL on tampered state")
+	}
+}
+
+func TestVerifyChainV07FailsOnReorderedReceipts(t *testing.T) {
+	state0 := buildInitialState()
+
+	r1, state1, _ := BuildTransitionV06(state0)
+	r2, state2, _ := BuildTransitionV06(state1)
+
+	// Reihenfolge vertauscht
+	chain := TransitionChainV07{
+		States:   []CanonicalStateV06{state0, state1, state2},
+		Receipts: []TransitionReceiptV06{r2, r1},
+	}
+
+	res, _ := VerifyChainV07(chain)
+
+	if res.Match {
+		t.Fatal("expected FAIL on reordered receipts")
+	}
+}
+
+func TestVerifyChainV07FailsOnMissingReceipt(t *testing.T) {
+	state0 := buildInitialState()
+
+	_, state1, _ := BuildTransitionV06(state0)
+	_, state2, _ := BuildTransitionV06(state1)
+
+	chain := TransitionChainV07{
+		States:   []CanonicalStateV06{state0, state1, state2},
+		Receipts: []TransitionReceiptV06{}, // fehlt
+	}
+
+	res, _ := VerifyChainV07(chain)
+
+	if res.Match {
+		t.Fatal("expected FAIL on missing receipt")
+	}
+}
+
+func TestVerifyChainV07FailsOnBrokenContinuity(t *testing.T) {
+	state0 := buildInitialState()
+
+	r1, state1, _ := BuildTransitionV06(state0)
+	r2, state2, _ := BuildTransitionV06(state1)
+
+	// Continuity brechen
+	r2.PrevStateHash = "sha256:fake"
+
+	chain := TransitionChainV07{
+		States:   []CanonicalStateV06{state0, state1, state2},
+		Receipts: []TransitionReceiptV06{r1, r2},
+	}
+
+	res, _ := VerifyChainV07(chain)
+
+	if res.Match {
+		t.Fatal("expected FAIL on broken continuity")
+	}
+}
+
+func buildInitialState() CanonicalStateV06 {
+	return CanonicalStateV06{
+		SchemaVersion: "canonical-state.v0.6",
+		Intent: IntentRef{
+			ID:       "intent.summary.v1",
+			InputRef: "input.text.v1",
+		},
+		Policy: PolicyRef{
+			ID:       "policy.allow_summary.v1",
+			Decision: "allow",
+		},
+		Action: ActionRef{
+			ID:        "action.summary.v1",
+			Type:      "summary",
+			OutputRef: "output.summary.v1",
+		},
+		Refs: map[string]string{
+			"input.text.v1":           HashStringV06("DigiEmu Core verifies deterministic knowledge states."),
+			"policy.allow_summary.v1": HashStringV06("intent == summarize_text && context.text != empty"),
+		},
+	}
+}
