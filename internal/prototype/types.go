@@ -85,3 +85,14 @@ type TransitionVerifyResultV06 struct {
 	Match  bool     `json:"match"`
 	Issues []string `json:"issues"`
 }
+
+type TransitionChainV07 struct {
+	States   []CanonicalStateV06    `json:"states"`
+	Receipts []TransitionReceiptV06 `json:"receipts"`
+}
+
+type ChainVerifyResultV07 struct {
+	Status string   `json:"status"`
+	Match  bool     `json:"match"`
+	Issues []string `json:"issues"`
+}

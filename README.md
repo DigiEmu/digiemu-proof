@@ -108,3 +108,6 @@ The goal is to demonstrate that a small agent execution path can be:
 
 * v0.1.0 — minimal deterministic execution proof
 * v0.2 — receipt + policy boundary model (current stable)
+- `v0.6.1` — transition verification (prev_state → next_state)
+- `v0.6.2` — independent next_state derivation
+- `v0.6.3` — corrected verification evaluation order (strict PASS/FAIL semantics)

@@ -251,3 +251,63 @@ func DeriveNextStateV06(state CanonicalStateV06) CanonicalStateV06 {
 
 	return nextState
 }
+
+func VerifyChainV07(chain TransitionChainV07) (ChainVerifyResultV07, error) {
+	issues := []string{}
+
+	if len(chain.States) < 2 || len(chain.Receipts) < 1 {
+		return ChainVerifyResultV07{
+			Status: "FAIL",
+			Match:  false,
+			Issues: []string{"invalid chain length"},
+		}, nil
+	}
+
+	// 1. Transition + Continuity + Order
+	for i := 0; i < len(chain.Receipts); i++ {
+		prev := chain.States[i]
+		next := chain.States[i+1]
+		r := chain.Receipts[i]
+
+		// a) einzelne Transition verifizieren (v0.6)
+		res, err := VerifyTransitionV06(prev, r, next)
+		if err != nil {
+			return ChainVerifyResultV07{}, err
+		}
+		if !res.Match {
+			issues = append(issues, "transition_"+string(r.StepID)+" invalid")
+		}
+
+		// b) Hash-Kontinuität
+		prevHash, _ := HashCanonicalStateV06(prev)
+		nextHash, _ := HashCanonicalStateV06(next)
+
+		if r.PrevStateHash != prevHash {
+			issues = append(issues, "prev_state continuity mismatch")
+		}
+
+		if r.NextStateHash != nextHash {
+			issues = append(issues, "next_state continuity mismatch")
+		}
+
+		// c) Order-Check (implizit durch Index)
+		if i > 0 {
+			prevReceipt := chain.Receipts[i-1]
+			if prevReceipt.NextStateHash != r.PrevStateHash {
+				issues = append(issues, "chain order broken")
+			}
+		}
+	}
+
+	match := len(issues) == 0
+	status := "FAIL"
+	if match {
+		status = "PASS"
+	}
+
+	return ChainVerifyResultV07{
+		Status: status,
+		Match:  match,
+		Issues: issues,
+	}, nil
+}

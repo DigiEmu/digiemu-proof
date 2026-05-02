@@ -187,3 +187,43 @@ func TestVerifyTransitionV06FailsOnTamperedNextState(t *testing.T) {
 		t.Fatal("expected transition mismatch")
 	}
 }
+
+func TestVerifyChainV07Pass(t *testing.T) {
+	state0 := CanonicalStateV06{
+		SchemaVersion: "canonical-state.v0.6",
+		Intent: IntentRef{
+			ID:       "intent.summary.v1",
+			InputRef: "input.text.v1",
+		},
+		Policy: PolicyRef{
+			ID:       "policy.allow_summary.v1",
+			Decision: "allow",
+		},
+		Action: ActionRef{
+			ID:        "action.summary.v1",
+			Type:      "summary",
+			OutputRef: "output.summary.v1",
+		},
+		Refs: map[string]string{
+			"input.text.v1":           HashStringV06("DigiEmu Core verifies deterministic knowledge states."),
+			"policy.allow_summary.v1": HashStringV06("intent == summarize_text && context.text != empty"),
+		},
+	}
+
+	r1, state1, _ := BuildTransitionV06(state0)
+	r2, state2, _ := BuildTransitionV06(state1)
+
+	chain := TransitionChainV07{
+		States:   []CanonicalStateV06{state0, state1, state2},
+		Receipts: []TransitionReceiptV06{r1, r2},
+	}
+
+	res, err := VerifyChainV07(chain)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !res.Match {
+		t.Fatalf("expected PASS, got FAIL: %v", res.Issues)
+	}
+}
