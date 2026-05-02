@@ -275,8 +275,8 @@ func VerifyChainV07(chain TransitionChainV07) (ChainVerifyResultV07, error) {
 			return ChainVerifyResultV07{}, err
 		}
 		if !res.Match {
-			issues = append(issues, "transition_"+string(r.StepID)+" invalid")
-		}
+	issues = append(issues, "transition_"+r.StepID+" invalid")
+}
 
 		// b) Hash-Kontinuität
 		prevHash, _ := HashCanonicalStateV06(prev)
