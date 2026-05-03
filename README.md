@@ -1,9 +1,8 @@
-# DigiEmu Proof — Public Standard
-
-Deterministic verification standard for execution integrity and governance integrity in AI systems.
+# DigiEmu Proof
 
 ![License](https://img.shields.io/badge/license-BSL%201.1-blue)
 
+Minimal prototype for deterministic execution and transition verification.
 ## License
 
 Business Source License 1.1 (BSL)
