@@ -804,3 +804,154 @@ func buildInitialState() CanonicalStateV06 {
 		},
 	}
 }
+
+func buildV11Dependency() ExternalDependencyRefV11 {
+	return ExternalDependencyRefV11{
+		ID:          "api.external.v1",
+		Type:        "api",
+		Source:      "example.external.api",
+		Fingerprint: HashStringV06("external-response-v11"),
+		Boundary:    "declared-not-replayed",
+	}
+}
+
+func TestVerifyProofEnvelopeV11Pass(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v11"
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+
+	envelope, err := BuildProofEnvelopeV11(
+		execution,
+		decision,
+		[]ExternalDependencyRefV11{buildV11Dependency()},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyProofEnvelopeV11(state0, envelope, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !result.Match {
+		t.Fatalf("expected PASS, got FAIL: %+v", result.Issues)
+	}
+
+	if result.Status != "PASS" {
+		t.Fatalf("expected PASS, got %s", result.Status)
+	}
+}
+
+func TestVerifyProofEnvelopeV11FailsOnMissingDependencies(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v11"
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+
+	envelope, err := BuildProofEnvelopeV11(
+		execution,
+		decision,
+		[]ExternalDependencyRefV11{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyProofEnvelopeV11(state0, envelope, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on missing external dependencies")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "external_dependencies missing" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyProofEnvelopeV11FailsOnDependencyFingerprintMissing(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v11"
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+
+	dep := buildV11Dependency()
+	dep.Fingerprint = ""
+
+	envelope, err := BuildProofEnvelopeV11(
+		execution,
+		decision,
+		[]ExternalDependencyRefV11{dep},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyProofEnvelopeV11(state0, envelope, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on missing dependency fingerprint")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "external_dependency fingerprint missing" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyProofEnvelopeV11FailsOnDependencyTamper(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v11"
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+
+	envelope, err := BuildProofEnvelopeV11(
+		execution,
+		decision,
+		[]ExternalDependencyRefV11{buildV11Dependency()},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	envelope.ExternalDependencies[0].Fingerprint = HashStringV06("tampered-external-response")
+
+	result, err := VerifyProofEnvelopeV11(state0, envelope, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on dependency tamper")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "envelope_hash mismatch" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
