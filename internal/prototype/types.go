@@ -158,3 +158,24 @@ type ProofEnvelopeVerifyResultV10 struct {
 	Match  bool     `json:"match"`
 	Issues []string `json:"issues"`
 }
+
+type ExternalDependencyRefV11 struct {
+	ID          string `json:"id"`
+	Type        string `json:"type"` // api, human, time, system, agent
+	Source      string `json:"source"`
+	Fingerprint string `json:"fingerprint"`
+	Boundary    string `json:"boundary"`
+}
+
+type ProofEnvelopeV11 struct {
+	Execution            TransitionReceiptV08       `json:"execution"`
+	Decision             TransitionReceiptV09       `json:"decision"`
+	ExternalDependencies []ExternalDependencyRefV11 `json:"external_dependencies"`
+	EnvelopeHash         string                     `json:"envelope_hash"`
+}
+
+type ProofEnvelopeVerifyResultV11 struct {
+	Status string   `json:"status"`
+	Match  bool     `json:"match"`
+	Issues []string `json:"issues"`
+}
