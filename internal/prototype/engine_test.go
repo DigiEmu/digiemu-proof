@@ -460,6 +460,210 @@ func TestVerifyTransitionReceiptV09FailsOnDeniedConstraint(t *testing.T) {
 	}
 }
 
+func buildV10ExecutionReceipt(t *testing.T, state0 CanonicalStateV06, state1 CanonicalStateV06) TransitionReceiptV08 {
+	t.Helper()
+
+	prevHash, err := HashCanonicalStateV06(state0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nextHash, err := HashCanonicalStateV06(state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return TransitionReceiptV08{
+		StepID:         "step-1",
+		Actor:          "test-runner",
+		ActionType:     state0.Action.Type,
+		IntentID:       state0.Intent.ID,
+		PolicyID:       state0.Policy.ID,
+		PolicyDecision: state0.Policy.Decision,
+		ActionID:       state0.Action.ID,
+		InputRef:       state0.Intent.InputRef,
+		PolicyRef:      state0.Policy.ID,
+		OutputRef:      state0.Action.OutputRef,
+		PrevStateHash:  prevHash,
+		NextStateHash:  nextHash,
+		Status:         "PASS",
+	}
+}
+
+func buildV10DecisionReceipt(t *testing.T, state0 CanonicalStateV06, state1 CanonicalStateV06) TransitionReceiptV09 {
+	t.Helper()
+
+	prevHash, err := HashCanonicalStateV06(state0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nextHash, err := HashCanonicalStateV06(state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return TransitionReceiptV09{
+		StepID:         "step-1",
+		Actor:          "test-runner",
+		ActionType:     state0.Action.Type,
+		IntentID:       state0.Intent.ID,
+		PolicyID:       state0.Policy.ID,
+		PolicyDecision: state0.Policy.Decision,
+		ActionID:       state0.Action.ID,
+		InputRef:       state0.Intent.InputRef,
+		PolicyRef:      state0.Policy.ID,
+		OutputRef:      state0.Action.OutputRef,
+		PrevStateHash:  prevHash,
+		NextStateHash:  nextHash,
+
+		PolicySetHash:         HashStringV06("policy-set:v10"),
+		AuthorizationContext:  "authz-context:v10",
+		ConstraintResult:      "allow",
+		ActorID:               "agent:test-runner",
+		CapabilityScope:       "summary:create",
+		SequenceBoundary:      "seq:1",
+		DependencyFingerprint: HashStringV06("dependency-state:v10"),
+
+		Status: "PASS",
+	}
+}
+
+func TestVerifyProofEnvelopeV10Pass(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v10"
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+
+	envelope, err := BuildProofEnvelopeV10(execution, decision)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyProofEnvelopeV10(state0, envelope, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !result.Match {
+		t.Fatalf("expected PASS, got FAIL: %+v", result.Issues)
+	}
+
+	if result.Status != "PASS" {
+		t.Fatalf("expected PASS, got %s", result.Status)
+	}
+}
+
+func TestVerifyProofEnvelopeV10FailsOnEnvelopeHashMismatch(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v10"
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+
+	envelope, err := BuildProofEnvelopeV10(execution, decision)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	envelope.EnvelopeHash = "sha256:tampered"
+
+	result, err := VerifyProofEnvelopeV10(state0, envelope, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on envelope hash mismatch")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "envelope_hash mismatch" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyProofEnvelopeV10FailsOnDecisionProofInvalid(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v10"
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+	decision.ConstraintResult = "deny"
+
+	envelope, err := BuildProofEnvelopeV10(execution, decision)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyProofEnvelopeV10(state0, envelope, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on invalid decision proof")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "decision proof invalid" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyProofEnvelopeV10FailsOnExecutionDecisionBindingMismatch(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v10"
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+	decision.ActionID = "action.other.v1"
+
+	envelope, err := BuildProofEnvelopeV10(execution, decision)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyProofEnvelopeV10(state0, envelope, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on execution/decision binding mismatch")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	expected := []string{
+		"decision proof invalid",
+		"execution_decision action_id mismatch",
+	}
+
+	if len(result.Issues) != len(expected) {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+
+	for i := range expected {
+		if result.Issues[i] != expected[i] {
+			t.Fatalf("unexpected issues: %+v", result.Issues)
+		}
+	}
+}
+
 func TestVerifyChainV07Pass(t *testing.T) {
 	state0 := CanonicalStateV06{
 		SchemaVersion: "canonical-state.v0.6",
