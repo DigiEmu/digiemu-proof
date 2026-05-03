@@ -2,7 +2,13 @@
 
 Deterministic verification standard for execution integrity and governance integrity in AI systems.
 
+![License](https://img.shields.io/badge/license-BSL%201.1-blue)
+
+## License
+
+Business Source License 1.1 (BSL)
 ---
+
 
 ## Overview
 
