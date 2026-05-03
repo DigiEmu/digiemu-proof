@@ -495,3 +495,109 @@ func VerifyTransitionReceiptV09(
 		Issues: issues,
 	}, nil
 }
+
+func HashProofEnvelopeV10(envelope ProofEnvelopeV10) (string, error) {
+	envelope.EnvelopeHash = ""
+
+	bytes, err := json.Marshal(envelope)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256(bytes)
+	return "sha256:" + hex.EncodeToString(hash[:]), nil
+}
+
+func BuildProofEnvelopeV10(
+	execution TransitionReceiptV08,
+	decision TransitionReceiptV09,
+) (ProofEnvelopeV10, error) {
+	envelope := ProofEnvelopeV10{
+		Execution: execution,
+		Decision:  decision,
+	}
+
+	hash, err := HashProofEnvelopeV10(envelope)
+	if err != nil {
+		return ProofEnvelopeV10{}, err
+	}
+
+	envelope.EnvelopeHash = hash
+
+	return envelope, nil
+}
+
+func VerifyProofEnvelopeV10(
+	prevState CanonicalStateV06,
+	envelope ProofEnvelopeV10,
+	nextState CanonicalStateV06,
+) (ProofEnvelopeVerifyResultV10, error) {
+	issues := []string{}
+
+	expectedHash, err := HashProofEnvelopeV10(envelope)
+	if err != nil {
+		return ProofEnvelopeVerifyResultV10{}, err
+	}
+
+	if envelope.EnvelopeHash != expectedHash {
+		issues = append(issues, "envelope_hash mismatch")
+	}
+
+	execResult, err := VerifyTransitionReceiptV08(prevState, envelope.Execution, nextState)
+	if err != nil {
+		return ProofEnvelopeVerifyResultV10{}, err
+	}
+
+	if !execResult.Match {
+		issues = append(issues, "execution proof invalid")
+	}
+
+	decisionResult, err := VerifyTransitionReceiptV09(prevState, envelope.Decision, nextState)
+	if err != nil {
+		return ProofEnvelopeVerifyResultV10{}, err
+	}
+
+	if !decisionResult.Match {
+		issues = append(issues, "decision proof invalid")
+	}
+
+	if envelope.Execution.PrevStateHash != envelope.Decision.PrevStateHash {
+		issues = append(issues, "execution_decision prev_state_hash mismatch")
+	}
+
+	if envelope.Execution.NextStateHash != envelope.Decision.NextStateHash {
+		issues = append(issues, "execution_decision next_state_hash mismatch")
+	}
+
+	if envelope.Execution.IntentID != envelope.Decision.IntentID {
+		issues = append(issues, "execution_decision intent_id mismatch")
+	}
+
+	if envelope.Execution.PolicyID != envelope.Decision.PolicyID {
+		issues = append(issues, "execution_decision policy_id mismatch")
+	}
+
+	if envelope.Execution.PolicyDecision != envelope.Decision.PolicyDecision {
+		issues = append(issues, "execution_decision policy_decision mismatch")
+	}
+
+	if envelope.Execution.ActionID != envelope.Decision.ActionID {
+		issues = append(issues, "execution_decision action_id mismatch")
+	}
+
+	if envelope.Execution.ActionType != envelope.Decision.ActionType {
+		issues = append(issues, "execution_decision action_type mismatch")
+	}
+
+	match := len(issues) == 0
+	status := "FAIL"
+	if match {
+		status = "PASS"
+	}
+
+	return ProofEnvelopeVerifyResultV10{
+		Status: status,
+		Match:  match,
+		Issues: issues,
+	}, nil
+}
