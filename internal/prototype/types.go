@@ -146,3 +146,15 @@ type TransitionReceiptV09 struct {
 
 	Status string `json:"status"`
 }
+
+type ProofEnvelopeV10 struct {
+	Execution    TransitionReceiptV08 `json:"execution"`
+	Decision     TransitionReceiptV09 `json:"decision"`
+	EnvelopeHash string               `json:"envelope_hash"`
+}
+
+type ProofEnvelopeVerifyResultV10 struct {
+	Status string   `json:"status"`
+	Match  bool     `json:"match"`
+	Issues []string `json:"issues"`
+}
