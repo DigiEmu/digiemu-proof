@@ -601,3 +601,110 @@ func VerifyProofEnvelopeV10(
 		Issues: issues,
 	}, nil
 }
+
+func HashProofEnvelopeV11(envelope ProofEnvelopeV11) (string, error) {
+	envelope.EnvelopeHash = ""
+
+	bytes, err := json.Marshal(envelope)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256(bytes)
+	return "sha256:" + hex.EncodeToString(hash[:]), nil
+}
+
+func BuildProofEnvelopeV11(
+	execution TransitionReceiptV08,
+	decision TransitionReceiptV09,
+	dependencies []ExternalDependencyRefV11,
+) (ProofEnvelopeV11, error) {
+	envelope := ProofEnvelopeV11{
+		Execution:            execution,
+		Decision:             decision,
+		ExternalDependencies: dependencies,
+	}
+
+	hash, err := HashProofEnvelopeV11(envelope)
+	if err != nil {
+		return ProofEnvelopeV11{}, err
+	}
+
+	envelope.EnvelopeHash = hash
+
+	return envelope, nil
+}
+
+func VerifyProofEnvelopeV11(
+	prevState CanonicalStateV06,
+	envelope ProofEnvelopeV11,
+	nextState CanonicalStateV06,
+) (ProofEnvelopeVerifyResultV11, error) {
+	issues := []string{}
+
+	expectedHash, err := HashProofEnvelopeV11(envelope)
+	if err != nil {
+		return ProofEnvelopeVerifyResultV11{}, err
+	}
+
+	if envelope.EnvelopeHash != expectedHash {
+		issues = append(issues, "envelope_hash mismatch")
+	}
+
+	v10Envelope, err := BuildProofEnvelopeV10(envelope.Execution, envelope.Decision)
+	if err != nil {
+		return ProofEnvelopeVerifyResultV11{}, err
+	}
+
+	v10Envelope.EnvelopeHash, err = HashProofEnvelopeV10(v10Envelope)
+	if err != nil {
+		return ProofEnvelopeVerifyResultV11{}, err
+	}
+
+	v10Result, err := VerifyProofEnvelopeV10(prevState, v10Envelope, nextState)
+	if err != nil {
+		return ProofEnvelopeVerifyResultV11{}, err
+	}
+
+	if !v10Result.Match {
+		issues = append(issues, "proof_envelope_v10 invalid")
+	}
+
+	if len(envelope.ExternalDependencies) == 0 {
+		issues = append(issues, "external_dependencies missing")
+	}
+
+	for _, dep := range envelope.ExternalDependencies {
+		if dep.ID == "" {
+			issues = append(issues, "external_dependency id missing")
+		}
+
+		if dep.Type == "" {
+			issues = append(issues, "external_dependency type missing")
+		}
+
+		if dep.Source == "" {
+			issues = append(issues, "external_dependency source missing")
+		}
+
+		if dep.Fingerprint == "" {
+			issues = append(issues, "external_dependency fingerprint missing")
+		}
+
+		if dep.Boundary == "" {
+			issues = append(issues, "external_dependency boundary missing")
+		}
+	}
+
+	match := len(issues) == 0
+	status := "FAIL"
+	if match {
+		status = "PASS"
+	}
+
+	return ProofEnvelopeVerifyResultV11{
+		Status: status,
+		Match:  match,
+		Issues: issues,
+	}, nil
+}
