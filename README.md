@@ -65,6 +65,19 @@ This ensures:
 
 - every transition is deterministic and verifiable
 
+---
+
+## Decision Proof Surface (v0.9)
+
+v0.9 introduces a minimal governance verification surface.
+
+Execution integrity proves:
+
+```text
+
+
+Did the system do what the receipt says it did?
+
 ## Chain Integrity (v0.7)
 
 Full chain verification enforces:
@@ -155,3 +168,4 @@ v0.6.3 — strict verification semantics
 v0.7.0 — chain continuity verification
 v0.7.1 — hardened failure semantics + negative tests
 v0.8.0 — transition receipt proof fields
+v0.9.0 — decision proof surface / governance-bound receipt
