@@ -19,6 +19,7 @@ Now extended to:
 * deterministic transition verification  
 * full chain continuity validation  
 * reproducible failure semantics  
+* proof envelope binding execution + decision integrity
 
 ---
 
@@ -64,6 +65,17 @@ And proves:
 This ensures:
 
 - every transition is deterministic and verifiable
+
+## Proof Envelope (v0.10)
+
+The proof envelope binds execution integrity and decision integrity into a single verifiable object:
+
+```text
+(prev_state → receipt → next_state) 
++ decision surface 
+→ proof envelope → envelope_hash
+
+```
 
 ---
 
@@ -154,9 +166,10 @@ state → transition → state → replay → verification
 
 The system proves:
 
-deterministic state reconstruction
-deterministic transitions
-deterministic failure behavior
+- deterministic state reconstruction
+- deterministic transitions
+- deterministic failure behavior
+- verifiable governance decisions
 
 ## Versions
 
@@ -169,3 +182,4 @@ deterministic failure behavior
 * v0.7.1 — hardened failure semantics + negative tests
 * v0.8.0 — transition receipt proof fields
 * v0.9.0 — decision proof surface / governance-bound receipt
+* v0.10.0 — proof envelope (execution + decision binding)
