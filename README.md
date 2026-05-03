@@ -160,12 +160,12 @@ deterministic failure behavior
 
 ## Versions
 
-v0.1.0 — deterministic execution proof
-v0.2 — boundary model (policy / receipt separation)
-v0.6.1 — transition verification
-v0.6.2 — independent next state derivation
-v0.6.3 — strict verification semantics
-v0.7.0 — chain continuity verification
-v0.7.1 — hardened failure semantics + negative tests
-v0.8.0 — transition receipt proof fields
-v0.9.0 — decision proof surface / governance-bound receipt
+* v0.1.0 — deterministic execution proof
+* v0.2 — boundary model (policy / receipt separation)
+* v0.6.1 — transition verification
+* v0.6.2 — independent next state derivation
+* v0.6.3 — strict verification semantics
+* v0.7.0 — chain continuity verification
+* v0.7.1 — hardened failure semantics + negative tests
+* v0.8.0 — transition receipt proof fields
+* v0.9.0 — decision proof surface / governance-bound receipt
