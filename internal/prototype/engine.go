@@ -640,7 +640,10 @@ func VerifyProofEnvelopeV11(
 	envelope ProofEnvelopeV11,
 	nextState CanonicalStateV06,
 ) (ProofEnvelopeVerifyResultV11, error) {
+
 	issues := []string{}
+
+	// --- Envelope Hash ---
 
 	expectedHash, err := HashProofEnvelopeV11(envelope)
 	if err != nil {
@@ -650,6 +653,8 @@ func VerifyProofEnvelopeV11(
 	if envelope.EnvelopeHash != expectedHash {
 		issues = append(issues, "envelope_hash mismatch")
 	}
+
+	// --- v0.10 Validation (Execution + Decision Binding) ---
 
 	v10Envelope, err := BuildProofEnvelopeV10(envelope.Execution, envelope.Decision)
 	if err != nil {
@@ -670,17 +675,39 @@ func VerifyProofEnvelopeV11(
 		issues = append(issues, "proof_envelope_v10 invalid")
 	}
 
+	// --- External Dependency Surface ---
+
 	if len(envelope.ExternalDependencies) == 0 {
 		issues = append(issues, "external_dependencies missing")
 	}
 
+	seenIDs := map[string]bool{}
+
+	allowedTypes := map[string]bool{
+		"api":    true,
+		"human":  true,
+		"time":   true,
+		"system": true,
+		"agent":  true,
+	}
+
 	for _, dep := range envelope.ExternalDependencies {
+
 		if dep.ID == "" {
 			issues = append(issues, "external_dependency id missing")
+		} else {
+			if seenIDs[dep.ID] {
+				issues = append(issues, "external_dependency duplicate id")
+			}
+			seenIDs[dep.ID] = true
 		}
 
 		if dep.Type == "" {
 			issues = append(issues, "external_dependency type missing")
+		} else {
+			if !allowedTypes[dep.Type] {
+				issues = append(issues, "external_dependency type invalid")
+			}
 		}
 
 		if dep.Source == "" {
@@ -695,6 +722,8 @@ func VerifyProofEnvelopeV11(
 			issues = append(issues, "external_dependency boundary missing")
 		}
 	}
+
+	// --- Final Result ---
 
 	match := len(issues) == 0
 	status := "FAIL"

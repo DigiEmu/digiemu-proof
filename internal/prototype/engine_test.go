@@ -955,3 +955,163 @@ func TestVerifyProofEnvelopeV11FailsOnDependencyTamper(t *testing.T) {
 		t.Fatalf("unexpected issues: %+v", result.Issues)
 	}
 }
+
+func TestVerifyProofEnvelopeV11FailsOnDependencyIDMissing(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v11"
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+
+	dep := buildV11Dependency()
+	dep.ID = ""
+
+	envelope, err := BuildProofEnvelopeV11(
+		execution,
+		decision,
+		[]ExternalDependencyRefV11{dep},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyProofEnvelopeV11(state0, envelope, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on missing dependency id")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "external_dependency id missing" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyProofEnvelopeV11FailsOnDependencyTypeInvalid(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v11"
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+
+	dep := buildV11Dependency()
+	dep.Type = "random"
+
+	envelope, err := BuildProofEnvelopeV11(
+		execution,
+		decision,
+		[]ExternalDependencyRefV11{dep},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyProofEnvelopeV11(state0, envelope, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on invalid dependency type")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "external_dependency type invalid" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyProofEnvelopeV11FailsOnDuplicateDependencyID(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v11"
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+
+	dep1 := buildV11Dependency()
+	dep2 := buildV11Dependency()
+	dep2.Fingerprint = HashStringV06("external-response-v11-second")
+
+	envelope, err := BuildProofEnvelopeV11(
+		execution,
+		decision,
+		[]ExternalDependencyRefV11{dep1, dep2},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyProofEnvelopeV11(state0, envelope, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on duplicate dependency id")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "external_dependency duplicate id" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyProofEnvelopeV11FailsOnOneInvalidDependencyAmongMany(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v11"
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+
+	dep1 := buildV11Dependency()
+
+	dep2 := ExternalDependencyRefV11{
+		ID:          "human.approval.v1",
+		Type:        "human",
+		Source:      "reviewer.local",
+		Fingerprint: "",
+		Boundary:    "declared-not-replayed",
+	}
+
+	envelope, err := BuildProofEnvelopeV11(
+		execution,
+		decision,
+		[]ExternalDependencyRefV11{dep1, dep2},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := VerifyProofEnvelopeV11(state0, envelope, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL when one dependency among many is invalid")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "external_dependency fingerprint missing" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
