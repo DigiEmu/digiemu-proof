@@ -285,6 +285,181 @@ func TestVerifyTransitionReceiptV08Pass(t *testing.T) {
 		t.Fatalf("expected no issues, got %+v", result.Issues)
 	}
 }
+
+func TestVerifyTransitionReceiptV09Pass(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v09"
+
+	prevHash, err := HashCanonicalStateV06(state0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nextHash, err := HashCanonicalStateV06(state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	receipt := TransitionReceiptV09{
+		StepID:         "step-1",
+		Actor:          "test-runner",
+		ActionType:     state0.Action.Type,
+		IntentID:       state0.Intent.ID,
+		PolicyID:       state0.Policy.ID,
+		PolicyDecision: state0.Policy.Decision,
+		ActionID:       state0.Action.ID,
+		InputRef:       state0.Intent.InputRef,
+		PolicyRef:      state0.Policy.ID,
+		OutputRef:      state0.Action.OutputRef,
+		PrevStateHash:  prevHash,
+		NextStateHash:  nextHash,
+
+		PolicySetHash:         HashStringV06("policy-set:v09"),
+		AuthorizationContext:  "authz-context:v09",
+		ConstraintResult:      "allow",
+		ActorID:               "agent:test-runner",
+		CapabilityScope:       "summary:create",
+		SequenceBoundary:      "seq:1",
+		DependencyFingerprint: HashStringV06("dependency-state:v09"),
+
+		Status: "PASS",
+	}
+
+	result, err := VerifyTransitionReceiptV09(state0, receipt, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !result.Match {
+		t.Fatalf("expected PASS, got FAIL: %+v", result.Issues)
+	}
+
+	if result.Status != "PASS" {
+		t.Fatalf("expected PASS, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 0 {
+		t.Fatalf("expected no issues, got %+v", result.Issues)
+	}
+}
+
+func TestVerifyTransitionReceiptV09FailsOnMissingPolicySetHash(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v09"
+
+	prevHash, err := HashCanonicalStateV06(state0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nextHash, err := HashCanonicalStateV06(state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	receipt := TransitionReceiptV09{
+		StepID:         "step-1",
+		Actor:          "test-runner",
+		ActionType:     state0.Action.Type,
+		IntentID:       state0.Intent.ID,
+		PolicyID:       state0.Policy.ID,
+		PolicyDecision: state0.Policy.Decision,
+		ActionID:       state0.Action.ID,
+		InputRef:       state0.Intent.InputRef,
+		PolicyRef:      state0.Policy.ID,
+		OutputRef:      state0.Action.OutputRef,
+		PrevStateHash:  prevHash,
+		NextStateHash:  nextHash,
+
+		PolicySetHash:         "",
+		AuthorizationContext:  "authz-context:v09",
+		ConstraintResult:      "allow",
+		ActorID:               "agent:test-runner",
+		CapabilityScope:       "summary:create",
+		SequenceBoundary:      "seq:1",
+		DependencyFingerprint: HashStringV06("dependency-state:v09"),
+
+		Status: "PASS",
+	}
+
+	result, err := VerifyTransitionReceiptV09(state0, receipt, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on missing policy_set_hash")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "policy_set_hash missing" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyTransitionReceiptV09FailsOnDeniedConstraint(t *testing.T) {
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = "sha256:output-v09"
+
+	prevHash, err := HashCanonicalStateV06(state0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nextHash, err := HashCanonicalStateV06(state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	receipt := TransitionReceiptV09{
+		StepID:         "step-1",
+		Actor:          "test-runner",
+		ActionType:     state0.Action.Type,
+		IntentID:       state0.Intent.ID,
+		PolicyID:       state0.Policy.ID,
+		PolicyDecision: state0.Policy.Decision,
+		ActionID:       state0.Action.ID,
+		InputRef:       state0.Intent.InputRef,
+		PolicyRef:      state0.Policy.ID,
+		OutputRef:      state0.Action.OutputRef,
+		PrevStateHash:  prevHash,
+		NextStateHash:  nextHash,
+
+		PolicySetHash:         HashStringV06("policy-set:v09"),
+		AuthorizationContext:  "authz-context:v09",
+		ConstraintResult:      "deny",
+		ActorID:               "agent:test-runner",
+		CapabilityScope:       "summary:create",
+		SequenceBoundary:      "seq:1",
+		DependencyFingerprint: HashStringV06("dependency-state:v09"),
+
+		Status: "FAIL",
+	}
+
+	result, err := VerifyTransitionReceiptV09(state0, receipt, state1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on denied constraint")
+	}
+
+	if result.Status != "FAIL" {
+		t.Fatalf("expected FAIL, got %s", result.Status)
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "constraint_result not allow" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
 func TestVerifyChainV07Pass(t *testing.T) {
 	state0 := CanonicalStateV06{
 		SchemaVersion: "canonical-state.v0.6",

@@ -128,6 +128,31 @@ func HashCanonicalStateV06(state CanonicalStateV06) (string, error) {
 	return "sha256:" + hex.EncodeToString(hash[:]), nil
 }
 
+func HashStringV06(value string) string {
+	sum := sha256.Sum256([]byte(value))
+	return "sha256:" + hex.EncodeToString(sum[:])
+}
+
+func DeriveNextStateV06(state CanonicalStateV06) CanonicalStateV06 {
+	nextState := state
+	nextState.Refs = map[string]string{}
+
+	if state.Refs != nil {
+		for key, value := range state.Refs {
+			nextState.Refs[key] = value
+		}
+	}
+
+	inputHash := nextState.Refs["input.text.v1"]
+	policyHash := nextState.Refs["policy.allow_summary.v1"]
+
+	if inputHash != "" && policyHash != "" && nextState.Policy.Decision == "allow" {
+		nextState.Refs["output.summary.v1"] = HashStringV06("DigiEmu Core verifies deterministic knowledge states.")
+	}
+
+	return nextState
+}
+
 func BuildTransitionV06(state CanonicalStateV06) (TransitionReceiptV06, CanonicalStateV06, error) {
 	prevHash, err := HashCanonicalStateV06(state)
 	if err != nil {
@@ -142,8 +167,8 @@ func BuildTransitionV06(state CanonicalStateV06) (TransitionReceiptV06, Canonica
 	}
 
 	receipt := TransitionReceiptV06{
-		StepID:        "step.summary.v1",
-		Actor:         "agent.local.v1",
+		StepID:        StepSummaryV1,
+		Actor:         ActorLocalV1,
 		ActionType:    "summary",
 		InputRef:      state.Intent.InputRef,
 		PolicyRef:     state.Policy.ID,
@@ -162,8 +187,6 @@ func VerifyTransitionV06(
 	nextState CanonicalStateV06,
 ) (TransitionVerifyResultV06, error) {
 	issues := []string{}
-
-	// --- ALL checks first ---
 
 	prevHash, err := HashCanonicalStateV06(prevState)
 	if err != nil {
@@ -195,7 +218,6 @@ func VerifyTransitionV06(
 		issues = append(issues, "output_ref mismatch")
 	}
 
-	// NEW: independent derivation check
 	derivedNextState := DeriveNextStateV06(prevState)
 
 	derivedNextHash, err := HashCanonicalStateV06(derivedNextState)
@@ -207,12 +229,9 @@ func VerifyTransitionV06(
 		issues = append(issues, "derived_next_state mismatch")
 	}
 
-	// existing check
 	if prevState.Policy.Decision == "allow" && nextState.Refs[prevState.Action.OutputRef] == "" {
 		issues = append(issues, "expected output ref missing in next state")
 	}
-
-	// --- FINAL evaluation AFTER all checks ---
 
 	match := len(issues) == 0
 	status := "FAIL"
@@ -227,35 +246,10 @@ func VerifyTransitionV06(
 	}, nil
 }
 
-func HashStringV06(value string) string {
-	sum := sha256.Sum256([]byte(value))
-	return "sha256:" + hex.EncodeToString(sum[:])
-}
-
-func DeriveNextStateV06(state CanonicalStateV06) CanonicalStateV06 {
-	nextState := state
-	nextState.Refs = map[string]string{}
-
-	if state.Refs != nil {
-		for key, value := range state.Refs {
-			nextState.Refs[key] = value
-		}
-	}
-
-	inputHash := nextState.Refs["input.text.v1"]
-	policyHash := nextState.Refs["policy.allow_summary.v1"]
-
-	if inputHash != "" && policyHash != "" && nextState.Policy.Decision == "allow" {
-		nextState.Refs["output.summary.v1"] = HashStringV06("DigiEmu Core verifies deterministic knowledge states.")
-	}
-
-	return nextState
-}
-
 func VerifyChainV07(chain TransitionChainV07) (ChainVerifyResultV07, error) {
 	issues := []string{}
 
-	if len(chain.States) < 2 || len(chain.Receipts) < 1 {
+	if len(chain.States) < 2 {
 		return ChainVerifyResultV07{
 			Status: "FAIL",
 			Match:  false,
@@ -263,24 +257,37 @@ func VerifyChainV07(chain TransitionChainV07) (ChainVerifyResultV07, error) {
 		}, nil
 	}
 
-	// 1. Transition + Continuity + Order
+	if len(chain.Receipts) != len(chain.States)-1 {
+		return ChainVerifyResultV07{
+			Status: "FAIL",
+			Match:  false,
+			Issues: []string{"invalid chain length"},
+		}, nil
+	}
+
 	for i := 0; i < len(chain.Receipts); i++ {
 		prev := chain.States[i]
 		next := chain.States[i+1]
 		r := chain.Receipts[i]
 
-		// a) einzelne Transition verifizieren (v0.6)
 		res, err := VerifyTransitionV06(prev, r, next)
 		if err != nil {
 			return ChainVerifyResultV07{}, err
 		}
+
 		if !res.Match {
 			issues = append(issues, "transition_"+r.StepID+" invalid")
 		}
 
-		// b) Hash-Kontinuität
-		prevHash, _ := HashCanonicalStateV06(prev)
-		nextHash, _ := HashCanonicalStateV06(next)
+		prevHash, err := HashCanonicalStateV06(prev)
+		if err != nil {
+			return ChainVerifyResultV07{}, err
+		}
+
+		nextHash, err := HashCanonicalStateV06(next)
+		if err != nil {
+			return ChainVerifyResultV07{}, err
+		}
 
 		if r.PrevStateHash != prevHash {
 			issues = append(issues, "prev_state continuity mismatch")
@@ -290,7 +297,6 @@ func VerifyChainV07(chain TransitionChainV07) (ChainVerifyResultV07, error) {
 			issues = append(issues, "next_state continuity mismatch")
 		}
 
-		// c) Order-Check (implizit durch Index)
 		if i > 0 {
 			prevReceipt := chain.Receipts[i-1]
 			if prevReceipt.NextStateHash != r.PrevStateHash {
@@ -381,5 +387,111 @@ func VerifyTransitionReceiptV08(
 		Status: "PASS",
 		Match:  true,
 		Issues: []string{},
+	}, nil
+}
+
+func VerifyTransitionReceiptV09(
+	prevState CanonicalStateV06,
+	receipt TransitionReceiptV09,
+	nextState CanonicalStateV06,
+) (TransitionVerifyResultV06, error) {
+	issues := []string{}
+
+	prevHash, err := HashCanonicalStateV06(prevState)
+	if err != nil {
+		return TransitionVerifyResultV06{}, err
+	}
+
+	nextHash, err := HashCanonicalStateV06(nextState)
+	if err != nil {
+		return TransitionVerifyResultV06{}, err
+	}
+
+	// --- Execution Surface ---
+
+	if receipt.PrevStateHash != prevHash {
+		issues = append(issues, "prev_state_hash mismatch")
+	}
+
+	if receipt.NextStateHash != nextHash {
+		issues = append(issues, "next_state_hash mismatch")
+	}
+
+	if receipt.IntentID != prevState.Intent.ID {
+		issues = append(issues, "intent_id mismatch")
+	}
+
+	if receipt.PolicyID != prevState.Policy.ID {
+		issues = append(issues, "policy_id mismatch")
+	}
+
+	if receipt.PolicyDecision != prevState.Policy.Decision {
+		issues = append(issues, "policy_decision mismatch")
+	}
+
+	if receipt.ActionID != prevState.Action.ID {
+		issues = append(issues, "action_id mismatch")
+	}
+
+	if receipt.ActionType != prevState.Action.Type {
+		issues = append(issues, "action_type mismatch")
+	}
+
+	if receipt.InputRef != prevState.Intent.InputRef {
+		issues = append(issues, "input_ref mismatch")
+	}
+
+	if receipt.PolicyRef != prevState.Policy.ID {
+		issues = append(issues, "policy_ref mismatch")
+	}
+
+	if receipt.OutputRef != prevState.Action.OutputRef {
+		issues = append(issues, "output_ref mismatch")
+	}
+
+	// --- Decision Surface ---
+
+	if receipt.PolicySetHash == "" {
+		issues = append(issues, "policy_set_hash missing")
+	}
+
+	if receipt.AuthorizationContext == "" {
+		issues = append(issues, "authorization_context missing")
+	}
+
+	if receipt.ConstraintResult == "" {
+		issues = append(issues, "constraint_result missing")
+	}
+
+	if receipt.ActorID == "" {
+		issues = append(issues, "actor_id missing")
+	}
+
+	if receipt.CapabilityScope == "" {
+		issues = append(issues, "capability_scope missing")
+	}
+
+	if receipt.SequenceBoundary == "" {
+		issues = append(issues, "sequence_boundary missing")
+	}
+
+	if receipt.DependencyFingerprint == "" {
+		issues = append(issues, "dependency_fingerprint missing")
+	}
+
+	if receipt.ConstraintResult != "" && receipt.ConstraintResult != "allow" {
+		issues = append(issues, "constraint_result not allow")
+	}
+
+	match := len(issues) == 0
+	status := "FAIL"
+	if match {
+		status = "PASS"
+	}
+
+	return TransitionVerifyResultV06{
+		Status: status,
+		Match:  match,
+		Issues: issues,
 	}, nil
 }

@@ -116,3 +116,33 @@ type TransitionReceiptV08 struct {
 
 	Status string `json:"status"`
 }
+
+type TransitionReceiptV09 struct {
+	// --- Execution Surface ---
+	StepID     string `json:"step_id"`
+	Actor      string `json:"actor"`
+	ActionType string `json:"action_type"`
+
+	IntentID       string `json:"intent_id"`
+	PolicyID       string `json:"policy_id"`
+	PolicyDecision string `json:"policy_decision"`
+	ActionID       string `json:"action_id"`
+
+	InputRef  string `json:"input_ref"`
+	PolicyRef string `json:"policy_ref"`
+	OutputRef string `json:"output_ref"`
+
+	PrevStateHash string `json:"prev_state_hash"`
+	NextStateHash string `json:"next_state_hash"`
+
+	// --- Decision Surface ---
+	PolicySetHash         string `json:"policy_set_hash"`
+	AuthorizationContext  string `json:"authorization_context"`
+	ConstraintResult      string `json:"constraint_result"`
+	ActorID               string `json:"actor_id"`
+	CapabilityScope       string `json:"capability_scope"`
+	SequenceBoundary      string `json:"sequence_boundary"`
+	DependencyFingerprint string `json:"dependency_fingerprint"`
+
+	Status string `json:"status"`
+}
