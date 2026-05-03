@@ -267,6 +267,7 @@ A system capable of:
 * v0.8.0 — transition receipt proof  
 * v0.9.0 — decision proof surface  
 * v0.10.0 — proof envelope (execution + decision binding)
+* v0.11.0 — external dependency boundary
 
 ---
 
