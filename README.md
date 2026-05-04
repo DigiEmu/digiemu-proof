@@ -208,17 +208,17 @@ Deterministic Knowledge Infrastructure
 
 ---
 
-Versions
-v0.1.0 — execution proof
-v0.2 — boundary model
-v0.6 — transitions
-v0.7 — chain integrity
-v0.8 — receipts
-v0.9 — decision surface
-v0.10 — proof envelope
-v0.11 — external dependency boundary
-v0.12 — composition integrity
-v0.12.1 — composition hardening
+## Versions
+* v0.1.0 — execution proof
+* v0.2 — boundary model
+* v0.6 — transitions
+* v0.7 — chain integrity
+* v0.8 — receipts
+* v0.9 — decision surface
+* v0.10 — proof envelope
+* v0.11 — external dependency boundary
+* v0.12 — composition integrity
+* v0.12.1 — composition hardening
 
 ---
 
