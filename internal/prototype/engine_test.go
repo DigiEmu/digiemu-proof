@@ -1115,3 +1115,226 @@ func TestVerifyProofEnvelopeV11FailsOnOneInvalidDependencyAmongMany(t *testing.T
 		t.Fatalf("unexpected issues: %+v", result.Issues)
 	}
 }
+
+func buildV12Envelope(t *testing.T, outputRef string, sequence string) (CanonicalStateV06, ProofEnvelopeV11, CanonicalStateV06) {
+	t.Helper()
+
+	state0 := buildInitialState()
+	state1 := state0
+	state1.Action.OutputRef = outputRef
+
+	execution := buildV10ExecutionReceipt(t, state0, state1)
+	decision := buildV10DecisionReceipt(t, state0, state1)
+
+	decision.SequenceBoundary = sequence
+	decision.PolicySetHash = HashStringV06("policy-set:v12")
+	decision.AuthorizationContext = "authz-context:v12"
+	decision.CapabilityScope = "summary:create"
+
+	dep := ExternalDependencyRefV11{
+		ID:          "api.external.v12",
+		Type:        "api",
+		Source:      "example.external.api",
+		Fingerprint: HashStringV06("external-response-v12"),
+		Boundary:    "declared-not-replayed",
+	}
+
+	envelope, err := BuildProofEnvelopeV11(
+		execution,
+		decision,
+		[]ExternalDependencyRefV11{dep},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return state0, envelope, state1
+}
+
+func buildV12Link(t *testing.T, from ProofEnvelopeV11, to ProofEnvelopeV11, fromSeq int, toSeq int) CompositionLinkV12 {
+	t.Helper()
+
+	fromHash, err := HashProofEnvelopeV11(from)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	toHash, err := HashProofEnvelopeV11(to)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return CompositionLinkV12{
+		FromEnvelopeHash: fromHash,
+		ToEnvelopeHash:   toHash,
+		AuthorityContext: from.Decision.AuthorizationContext,
+		DependencyScope:  dependencyScopeV12(from.ExternalDependencies),
+		PolicySetHash:    from.Decision.PolicySetHash,
+		SequenceFrom:     fromSeq,
+		SequenceTo:       toSeq,
+	}
+}
+
+func TestVerifyCompositionV12Pass(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v12-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v12-b", "seq:2")
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 2)
+
+	chain := CompositionChainV12{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+	}
+
+	result, err := VerifyCompositionV12(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !result.Match {
+		t.Fatalf("expected PASS, got FAIL: %+v", result.Issues)
+	}
+}
+
+func TestVerifyCompositionV12FailsOnAuthorityContinuityMismatch(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v12-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v12-b", "seq:2")
+
+	envelope1.Decision.AuthorizationContext = "authz-context:changed"
+
+	envelope1, err := BuildProofEnvelopeV11(
+		envelope1.Execution,
+		envelope1.Decision,
+		envelope1.ExternalDependencies,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 2)
+
+	chain := CompositionChainV12{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+	}
+
+	result, err := VerifyCompositionV12(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on authority continuity mismatch")
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "authority continuity mismatch" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyCompositionV12FailsOnDependencyContinuityMismatch(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v12-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v12-b", "seq:2")
+
+	envelope1.ExternalDependencies[0].Fingerprint = HashStringV06("changed-external-response")
+
+	envelope1, err := BuildProofEnvelopeV11(
+		envelope1.Execution,
+		envelope1.Decision,
+		envelope1.ExternalDependencies,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 2)
+
+	chain := CompositionChainV12{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+	}
+
+	result, err := VerifyCompositionV12(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on dependency continuity mismatch")
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "dependency continuity mismatch" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyCompositionV12FailsOnTemporalSequenceInvalid(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v12-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v12-b", "seq:2")
+
+	link := buildV12Link(t, envelope0, envelope1, 2, 1)
+
+	chain := CompositionChainV12{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+	}
+
+	result, err := VerifyCompositionV12(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on temporal sequence invalid")
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "temporal sequence invalid" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyCompositionV12FailsOnLinkHashMismatch(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v12-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v12-b", "seq:2")
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 2)
+	link.ToEnvelopeHash = "sha256:tampered"
+
+	chain := CompositionChainV12{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+	}
+
+	result, err := VerifyCompositionV12(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on link hash mismatch")
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "composition to_envelope_hash mismatch" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
