@@ -236,3 +236,19 @@ type ReferenceVerifyResultV14 struct {
 	Match  bool     `json:"match"`
 	Issues []string `json:"issues"`
 }
+
+// --- Case 001 Policy Drift ---
+
+type PolicyModeCase001 string
+
+const (
+	PolicyModeInheritCase001  PolicyModeCase001 = "inherit"
+	PolicyModeOverrideCase001 PolicyModeCase001 = "override"
+)
+
+type PolicyReceiptCase001 struct {
+	StepID     string `json:"step_id"`
+	PolicyRef  string `json:"policy_ref"`
+	PolicyMode string `json:"policy_mode"`
+	Status     string `json:"status"`
+}
