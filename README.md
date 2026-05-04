@@ -209,6 +209,12 @@ Deterministic Knowledge Infrastructure
 
 ---
 
+## Specifications
+
+- [Composition Integrity Spec v0.1](docs/specs/composition-integrity-v0.1.md)
+(PDF version available in the same folder)
+---
+
 ## Authorship
 
 Bruno Baumgartner  
@@ -227,3 +233,5 @@ Gregory Whited
 Please attribute:
 
 DigiEmu / Bruno Baumgartner
+
+
