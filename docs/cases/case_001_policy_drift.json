@@ -1,0 +1,54 @@
+{
+  "case_id": "case_001_policy_drift",
+  "title": "Valid execution, invalid composition through undeclared policy drift",
+  "schema_version": "case_001_v1",
+  "purpose": "Demonstrate that locally valid deterministic transitions can fail composition validation when policy context changes without declared override intent.",
+  "states": [
+    {
+      "state_id": "state_1",
+      "policy_ref": "policy_v1",
+      "decision": "allow",
+      "input_ref": "input_triage_001",
+      "output_ref": "output_triage_001"
+    },
+    {
+      "state_id": "state_2",
+      "policy_ref": "policy_v2",
+      "decision": "escalate",
+      "input_ref": "input_triage_002",
+      "output_ref": "output_triage_002"
+    },
+    {
+      "state_id": "state_3",
+      "policy_ref": "policy_v1",
+      "decision": "allow",
+      "input_ref": "input_triage_003",
+      "output_ref": "output_triage_003"
+    }
+  ],
+  "receipts": [
+    {
+      "step_id": "step_1",
+      "policy_ref": "policy_v1",
+      "policy_mode": "inherit",
+      "status": "completed"
+    },
+    {
+      "step_id": "step_2",
+      "policy_ref": "policy_v2",
+      "policy_mode": "override",
+      "status": "completed"
+    },
+    {
+      "step_id": "step_3",
+      "policy_ref": "policy_v1",
+      "policy_mode": "inherit",
+      "status": "completed"
+    }
+  ],
+  "expected_result": {
+    "transition_integrity": "PASS",
+    "composition_integrity": "FAIL",
+    "reason": "step_3 declares policy_mode inherit but policy_ref changed from policy_v2 to policy_v1"
+  }
+}
