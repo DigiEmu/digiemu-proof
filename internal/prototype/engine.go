@@ -1230,3 +1230,46 @@ func ValidateAuthorityCompositionCase002(receipts []AuthorityReceiptCase002) Com
 		Issues: issues,
 	}
 }
+
+type PolicyFingerprintReceipt struct {
+	StepID            string
+	PolicyMode        string
+	PolicyFingerprint string
+}
+
+type PolicyFingerprintResult struct {
+	Match  bool
+	Status string
+	Issues []string
+}
+
+func ValidatePolicyFingerprint(receipts []PolicyFingerprintReceipt) PolicyFingerprintResult {
+	var issues []string
+
+	for i := 1; i < len(receipts); i++ {
+		prev := receipts[i-1]
+		curr := receipts[i]
+
+		if curr.PolicyMode == "inherit" {
+			if curr.PolicyFingerprint != prev.PolicyFingerprint {
+				issues = append(issues, "policy fingerprint mismatch on inherit")
+			}
+		}
+
+		if curr.PolicyMode == "override" {
+			// override erlaubt Änderung → kein Fehler
+		}
+	}
+
+	match := len(issues) == 0
+	status := "FAIL"
+	if match {
+		status = "PASS"
+	}
+
+	return PolicyFingerprintResult{
+		Match:  match,
+		Status: status,
+		Issues: issues,
+	}
+}

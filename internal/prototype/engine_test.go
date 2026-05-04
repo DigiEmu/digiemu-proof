@@ -1846,15 +1846,43 @@ func TestValidateAuthorityCompositionCase002FailsOnUndeclaredAuthorityDrift(t *t
 }
 
 func TestValidatePolicyCompositionCase001PassWithDeclaredPolicyEvolution(t *testing.T) {
-    receipts := []PolicyReceiptCase001{
-        {StepID: "step_1", PolicyRef: "policy_v1", PolicyMode: "inherit", Status: "completed"},
-        {StepID: "step_2", PolicyRef: "policy_v2", PolicyMode: "override", Status: "completed"},
-        {StepID: "step_3", PolicyRef: "policy_v1", PolicyMode: "override", Status: "completed"},
-    }
+	receipts := []PolicyReceiptCase001{
+		{StepID: "step_1", PolicyRef: "policy_v1", PolicyMode: "inherit", Status: "completed"},
+		{StepID: "step_2", PolicyRef: "policy_v2", PolicyMode: "override", Status: "completed"},
+		{StepID: "step_3", PolicyRef: "policy_v1", PolicyMode: "override", Status: "completed"},
+	}
 
-    result := ValidatePolicyCompositionCase001(receipts)
+	result := ValidatePolicyCompositionCase001(receipts)
 
-    if !result.Match {
-        t.Fatalf("expected PASS, got FAIL: %v", result.Issues)
-    }
+	if !result.Match {
+		t.Fatalf("expected PASS, got FAIL: %v", result.Issues)
+	}
+}
+
+func TestPolicyFingerprintPassWithOverride(t *testing.T) {
+	receipts := []PolicyFingerprintReceipt{
+		{StepID: "step_1", PolicyMode: "inherit", PolicyFingerprint: "fp_v1"},
+		{StepID: "step_2", PolicyMode: "override", PolicyFingerprint: "fp_v2"},
+		{StepID: "step_3", PolicyMode: "inherit", PolicyFingerprint: "fp_v2"},
+	}
+
+	result := ValidatePolicyFingerprint(receipts)
+
+	if !result.Match {
+		t.Fatalf("expected PASS, got FAIL: %v", result.Issues)
+	}
+}
+
+func TestPolicyFingerprintFailOnDependencyMutation(t *testing.T) {
+	receipts := []PolicyFingerprintReceipt{
+		{StepID: "step_1", PolicyMode: "inherit", PolicyFingerprint: "fp_v1"},
+		{StepID: "step_2", PolicyMode: "override", PolicyFingerprint: "fp_v2"},
+		{StepID: "step_3", PolicyMode: "inherit", PolicyFingerprint: "fp_MUTATED"},
+	}
+
+	result := ValidatePolicyFingerprint(receipts)
+
+	if result.Match {
+		t.Fatalf("expected FAIL")
+	}
 }
