@@ -246,6 +246,19 @@ Deterministic Knowledge Infrastructure
 
 ---
 
+## Case 001 – Policy Drift
+
+Demonstrates:
+
+valid execution ≠ coherent execution
+
+A chain of valid transitions can fail at the composition layer
+if policy context changes without declared override intent.
+
+See: docs/cases/case_001_policy_drift.json
+
+---
+
 ## Versions
 
 - v0.1.0 — execution proof  
