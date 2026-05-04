@@ -1171,3 +1171,62 @@ func ValidatePolicyCompositionCase001(receipts []PolicyReceiptCase001) Compositi
 		Issues: issues,
 	}
 }
+
+func ValidateAuthorityCompositionCase002(receipts []AuthorityReceiptCase002) CompositionVerifyResultV13 {
+	issues := []string{}
+
+	if len(receipts) == 0 {
+		return CompositionVerifyResultV13{
+			Status: "FAIL",
+			Match:  false,
+			Issues: []string{"receipts missing"},
+		}
+	}
+
+	currentAuthority := receipts[0].Authority
+
+	if currentAuthority == "" {
+		issues = append(issues, "initial authority missing")
+	}
+
+	for i, receipt := range receipts {
+		if receipt.StepID == "" {
+			issues = append(issues, "step_id missing")
+		}
+
+		if receipt.Authority == "" {
+			issues = append(issues, "authority missing")
+		}
+
+		if receipt.AuthorityMode != "inherit" && receipt.AuthorityMode != "override" {
+			issues = append(issues, "authority_mode invalid")
+		}
+
+		if i == 0 {
+			continue
+		}
+
+		if receipt.Authority != currentAuthority {
+			if receipt.AuthorityMode != "override" {
+				issues = append(
+					issues,
+					"authority drift at "+receipt.StepID+": expected inherit from "+currentAuthority+", got "+receipt.Authority,
+				)
+			} else {
+				currentAuthority = receipt.Authority
+			}
+		}
+	}
+
+	match := len(issues) == 0
+	status := "FAIL"
+	if match {
+		status = "PASS"
+	}
+
+	return CompositionVerifyResultV13{
+		Status: status,
+		Match:  match,
+		Issues: issues,
+	}
+}
