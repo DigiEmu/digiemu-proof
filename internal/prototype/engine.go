@@ -1112,3 +1112,62 @@ func VerifyReceiptReferencesV14(
 		Issues: issues,
 	}
 }
+
+func ValidatePolicyCompositionCase001(receipts []PolicyReceiptCase001) CompositionVerifyResultV13 {
+	issues := []string{}
+
+	if len(receipts) == 0 {
+		return CompositionVerifyResultV13{
+			Status: "FAIL",
+			Match:  false,
+			Issues: []string{"receipts missing"},
+		}
+	}
+
+	currentPolicy := receipts[0].PolicyRef
+
+	if currentPolicy == "" {
+		issues = append(issues, "initial policy_ref missing")
+	}
+
+	for i, receipt := range receipts {
+		if receipt.StepID == "" {
+			issues = append(issues, "step_id missing")
+		}
+
+		if receipt.PolicyRef == "" {
+			issues = append(issues, "policy_ref missing")
+		}
+
+		if receipt.PolicyMode != "inherit" && receipt.PolicyMode != "override" {
+			issues = append(issues, "policy_mode invalid")
+		}
+
+		if i == 0 {
+			continue
+		}
+
+		if receipt.PolicyRef != currentPolicy {
+			if receipt.PolicyMode != "override" {
+				issues = append(
+					issues,
+					"policy drift at "+receipt.StepID+": expected inherit from "+currentPolicy+", got "+receipt.PolicyRef,
+				)
+			} else {
+				currentPolicy = receipt.PolicyRef
+			}
+		}
+	}
+
+	match := len(issues) == 0
+	status := "FAIL"
+	if match {
+		status = "PASS"
+	}
+
+	return CompositionVerifyResultV13{
+		Status: status,
+		Match:  match,
+		Issues: issues,
+	}
+}
