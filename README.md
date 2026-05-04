@@ -239,6 +239,28 @@ deterministic chain integrity
 ```
 ---
 
+## Reference Integrity (v0.14)
+
+Verifies that receipt references resolve inside the declared verification context.
+
+Checks:
+
+```text
+input_ref exists
+policy_ref exists
+output_ref exists
+```
+
+Failure semantics:
+```text
+missing reference → FAIL
+unknown reference → FAIL
+```
+
+v0.14 moves Proof from chain continuity toward evidence integrity.
+
+----
+
 ## External Dependency Boundary (v0.11)
 
 ```text
@@ -328,6 +350,8 @@ Deterministic Knowledge Infrastructure
 * v0.12 — composition integrity
 * v0.12.1 — composition hardening
 * v0.13 — continuity boundary
+* v0.14 — reference integrity
+
 
 ---
 
