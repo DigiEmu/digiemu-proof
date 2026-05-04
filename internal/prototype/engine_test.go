@@ -1713,3 +1713,73 @@ func TestVerifyCompositionV13PassesOnAllowedTemporalGap(t *testing.T) {
 		t.Fatalf("expected PASS on allowed temporal gap, got issues: %+v", result.Issues)
 	}
 }
+
+func TestVerifyReceiptReferencesV14Pass(t *testing.T) {
+	receipt := TransitionReceiptV08{
+		InputRef:  "input.text.v1",
+		PolicyRef: "policy.allow_summary.v1",
+		OutputRef: "output.summary.v1",
+	}
+
+	refs := ReferenceSetV14{
+		Inputs: map[string]bool{
+			"input.text.v1": true,
+		},
+		Policies: map[string]bool{
+			"policy.allow_summary.v1": true,
+		},
+		Outputs: map[string]bool{
+			"output.summary.v1": true,
+		},
+	}
+
+	result := VerifyReceiptReferencesV14(receipt, refs)
+
+	if !result.Match {
+		t.Fatalf("expected PASS, got FAIL: %v", result.Issues)
+	}
+}
+
+func TestVerifyReceiptReferencesV14FailsOnMissingRefs(t *testing.T) {
+	receipt := TransitionReceiptV08{}
+
+	refs := ReferenceSetV14{
+		Inputs:   map[string]bool{},
+		Policies: map[string]bool{},
+		Outputs:  map[string]bool{},
+	}
+
+	result := VerifyReceiptReferencesV14(receipt, refs)
+
+	if result.Match {
+		t.Fatalf("expected FAIL")
+	}
+
+	if len(result.Issues) != 3 {
+		t.Fatalf("expected 3 issues, got %d: %v", len(result.Issues), result.Issues)
+	}
+}
+
+func TestVerifyReceiptReferencesV14FailsOnUnknownRefs(t *testing.T) {
+	receipt := TransitionReceiptV08{
+		InputRef:  "input.unknown",
+		PolicyRef: "policy.unknown",
+		OutputRef: "output.unknown",
+	}
+
+	refs := ReferenceSetV14{
+		Inputs:   map[string]bool{},
+		Policies: map[string]bool{},
+		Outputs:  map[string]bool{},
+	}
+
+	result := VerifyReceiptReferencesV14(receipt, refs)
+
+	if result.Match {
+		t.Fatalf("expected FAIL")
+	}
+
+	if len(result.Issues) != 3 {
+		t.Fatalf("expected 3 issues, got %d: %v", len(result.Issues), result.Issues)
+	}
+}

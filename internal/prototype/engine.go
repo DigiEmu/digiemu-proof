@@ -1075,3 +1075,40 @@ func VerifyCompositionV13(
 		Issues: issues,
 	}, nil
 }
+
+func VerifyReceiptReferencesV14(
+	receipt TransitionReceiptV08,
+	refs ReferenceSetV14,
+) ReferenceVerifyResultV14 {
+	issues := []string{}
+
+	if receipt.InputRef == "" {
+		issues = append(issues, "input_ref missing")
+	} else if !refs.Inputs[receipt.InputRef] {
+		issues = append(issues, "input_ref unknown")
+	}
+
+	if receipt.PolicyRef == "" {
+		issues = append(issues, "policy_ref missing")
+	} else if !refs.Policies[receipt.PolicyRef] {
+		issues = append(issues, "policy_ref unknown")
+	}
+
+	if receipt.OutputRef == "" {
+		issues = append(issues, "output_ref missing")
+	} else if !refs.Outputs[receipt.OutputRef] {
+		issues = append(issues, "output_ref unknown")
+	}
+
+	match := len(issues) == 0
+	status := "FAIL"
+	if match {
+		status = "PASS"
+	}
+
+	return ReferenceVerifyResultV14{
+		Status: status,
+		Match:  match,
+		Issues: issues,
+	}
+}

@@ -222,3 +222,17 @@ type CompositionVerifyResultV13 struct {
 	Match  bool     `json:"match"`
 	Issues []string `json:"issues"`
 }
+
+// --- v0.14 Reference Integrity ---
+
+type ReferenceSetV14 struct {
+	Inputs   map[string]bool `json:"inputs"`
+	Policies map[string]bool `json:"policies"`
+	Outputs  map[string]bool `json:"outputs"`
+}
+
+type ReferenceVerifyResultV14 struct {
+	Status string   `json:"status"`
+	Match  bool     `json:"match"`
+	Issues []string `json:"issues"`
+}
