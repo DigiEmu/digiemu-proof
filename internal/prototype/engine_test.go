@@ -1442,3 +1442,274 @@ func TestVerifyCompositionV12PassesSingleEnvelopeWithoutLinks(t *testing.T) {
 		t.Fatalf("expected PASS, got %s", result.Status)
 	}
 }
+
+func strictBoundaryV13() ContinuityBoundaryV13 {
+	return ContinuityBoundaryV13{
+		AuthorityInvariant:  true,
+		PolicyInvariant:     true,
+		CapabilityInvariant: true,
+		DependencyInvariant: true,
+		TemporalInvariant:   true,
+	}
+}
+
+func relaxedBoundaryV13() ContinuityBoundaryV13 {
+	return ContinuityBoundaryV13{
+		AuthorityInvariant:  false,
+		PolicyInvariant:     false,
+		CapabilityInvariant: false,
+		DependencyInvariant: false,
+		TemporalInvariant:   false,
+	}
+}
+
+func TestVerifyCompositionV13PassesWithStrictNoDrift(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v13-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v13-b", "seq:2")
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 2)
+
+	chain := CompositionChainV13{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+		Boundary:  strictBoundaryV13(),
+	}
+
+	result, err := VerifyCompositionV13(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !result.Match {
+		t.Fatalf("expected PASS, got FAIL: %+v", result.Issues)
+	}
+}
+
+func TestVerifyCompositionV13FailsOnForbiddenAuthorityDrift(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v13-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v13-b", "seq:2")
+
+	envelope1.Decision.AuthorizationContext = "authz-context:v13-changed"
+
+	var err error
+	envelope1, err = BuildProofEnvelopeV11(
+		envelope1.Execution,
+		envelope1.Decision,
+		envelope1.ExternalDependencies,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 2)
+
+	chain := CompositionChainV13{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+		Boundary:  strictBoundaryV13(),
+	}
+
+	result, err := VerifyCompositionV13(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on forbidden authority drift")
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "authority continuity mismatch" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyCompositionV13PassesOnAllowedAuthorityDrift(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v13-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v13-b", "seq:2")
+
+	envelope1.Decision.AuthorizationContext = "authz-context:v13-changed"
+
+	var err error
+	envelope1, err = BuildProofEnvelopeV11(
+		envelope1.Execution,
+		envelope1.Decision,
+		envelope1.ExternalDependencies,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 2)
+
+	boundary := strictBoundaryV13()
+	boundary.AuthorityInvariant = false
+
+	chain := CompositionChainV13{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+		Boundary:  boundary,
+	}
+
+	result, err := VerifyCompositionV13(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !result.Match {
+		t.Fatalf("expected PASS on allowed authority drift, got issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyCompositionV13FailsOnForbiddenDependencyDrift(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v13-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v13-b", "seq:2")
+
+	envelope1.ExternalDependencies[0].Fingerprint = HashStringV06("changed-dependency-v13")
+
+	var err error
+	envelope1, err = BuildProofEnvelopeV11(
+		envelope1.Execution,
+		envelope1.Decision,
+		envelope1.ExternalDependencies,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 2)
+
+	chain := CompositionChainV13{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+		Boundary:  strictBoundaryV13(),
+	}
+
+	result, err := VerifyCompositionV13(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on forbidden dependency drift")
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "dependency continuity mismatch" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyCompositionV13PassesOnAllowedDependencyDrift(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v13-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v13-b", "seq:2")
+
+	envelope1.ExternalDependencies[0].Fingerprint = HashStringV06("changed-dependency-v13")
+
+	var err error
+	envelope1, err = BuildProofEnvelopeV11(
+		envelope1.Execution,
+		envelope1.Decision,
+		envelope1.ExternalDependencies,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 2)
+
+	boundary := strictBoundaryV13()
+	boundary.DependencyInvariant = false
+
+	chain := CompositionChainV13{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+		Boundary:  boundary,
+	}
+
+	result, err := VerifyCompositionV13(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !result.Match {
+		t.Fatalf("expected PASS on allowed dependency drift, got issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyCompositionV13FailsOnForbiddenTemporalGap(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v13-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v13-b", "seq:3")
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 3)
+
+	chain := CompositionChainV13{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+		Boundary:  strictBoundaryV13(),
+	}
+
+	result, err := VerifyCompositionV13(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on forbidden temporal gap")
+	}
+
+	if len(result.Issues) != 1 || result.Issues[0] != "sequence continuity gap" {
+		t.Fatalf("unexpected issues: %+v", result.Issues)
+	}
+}
+
+func TestVerifyCompositionV13PassesOnAllowedTemporalGap(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v13-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v13-b", "seq:3")
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 3)
+
+	boundary := strictBoundaryV13()
+	boundary.TemporalInvariant = false
+
+	chain := CompositionChainV13{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+		Boundary:  boundary,
+	}
+
+	result, err := VerifyCompositionV13(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !result.Match {
+		t.Fatalf("expected PASS on allowed temporal gap, got issues: %+v", result.Issues)
+	}
+}
