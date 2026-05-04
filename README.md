@@ -131,6 +131,114 @@ Adds:
 
 ---
 
+## v0.13 – Continuity Boundary Verification
+
+Version 0.13 introduces **chain-level continuity verification**.
+
+The system now validates not only individual transitions, but also whether
+a sequence of valid transitions forms a **deterministic and unbroken state chain**.
+
+### What is verified
+
+For a chain of states and receipts:
+
+- Each transition is independently valid
+- Receipt ordering is preserved
+- State hash continuity is enforced:
+
+  receipt[i].PrevStateHash == hash(states[i])
+  receipt[i].NextStateHash == hash(states[i+1])
+
+- Chain length invariant:
+
+  len(receipts) == len(states) - 1
+
+### Why this matters
+
+A system may produce valid individual transitions, but still fail as a whole
+if:
+
+- a state is tampered in the middle
+- receipts are reordered
+- a transition is missing
+
+v0.13 ensures that **execution integrity composes across time**.
+
+### Failure model
+
+Verification is deterministic and strict:
+
+- Any mismatch results in FAIL
+- No partial acceptance
+- Reproducible rejection
+
+### Example
+
+```go
+err := ValidateChain(states, receipts)
+if err != nil {
+    // FAIL: broken continuity
+}
+```
+--- 
+
+Next direction
+
+This lays the foundation for:
+
+provenance integrity
+dependency integrity
+multi-agent execution verification
+
+---
+
+Neue Datei oder Ergänzung:
+
+---
+
+## Continuity Boundary (v0.13)
+
+```text
+flowchart LR
+    S0 --> S1 --> S2 --> S3
+
+    R1[receipt₁]
+    R2[receipt₂]
+    R3[receipt₃]
+
+    S0 --> R1 --> S1
+    S1 --> R2 --> S2
+    S2 --> R3 --> S3
+```
+--- 
+
+Verifies:
+
+```text
+independent transition validity
+strict receipt ordering
+full state continuity across chain
+deterministic hash linkage between states
+```
+Rules:
+
+```text
+len(receipts) == len(states) - 1
+receipt[i].prev_state_hash == hash(states[i])
+receipt[i].next_state_hash == hash(states[i+1])
+```
+---
+
+Ensures:
+
+```text
+no tampering in intermediate states
+no missing transitions
+no reordered execution steps
+deterministic chain integrity
+```
+---
+
 ## External Dependency Boundary (v0.11)
 
 ```text
@@ -219,6 +327,7 @@ Deterministic Knowledge Infrastructure
 * v0.11 — external dependency boundary
 * v0.12 — composition integrity
 * v0.12.1 — composition hardening
+* v0.13 — continuity boundary
 
 ---
 
