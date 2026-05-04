@@ -252,3 +252,12 @@ type PolicyReceiptCase001 struct {
 	PolicyMode string `json:"policy_mode"`
 	Status     string `json:"status"`
 }
+
+// --- Case 002 Authority Drift ---
+
+type AuthorityReceiptCase002 struct {
+	StepID        string `json:"step_id"`
+	PolicyRef     string `json:"policy_ref"`
+	Authority     string `json:"authority"`
+	AuthorityMode string `json:"authority_mode"`
+}

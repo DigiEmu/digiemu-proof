@@ -1785,32 +1785,76 @@ func TestVerifyReceiptReferencesV14FailsOnUnknownRefs(t *testing.T) {
 }
 
 func TestValidatePolicyCompositionCase001PassWithOverride(t *testing.T) {
+	receipts := []PolicyReceiptCase001{
+		{StepID: "step_1", PolicyRef: "policy_v1", PolicyMode: "inherit", Status: "completed"},
+		{StepID: "step_2", PolicyRef: "policy_v2", PolicyMode: "override", Status: "completed"},
+	}
+
+	result := ValidatePolicyCompositionCase001(receipts)
+
+	if !result.Match {
+		t.Fatalf("expected PASS, got FAIL: %v", result.Issues)
+	}
+}
+
+func TestValidatePolicyCompositionCase001FailsOnUndeclaredPolicyDrift(t *testing.T) {
+	receipts := []PolicyReceiptCase001{
+		{StepID: "step_1", PolicyRef: "policy_v1", PolicyMode: "inherit", Status: "completed"},
+		{StepID: "step_2", PolicyRef: "policy_v2", PolicyMode: "override", Status: "completed"},
+		{StepID: "step_3", PolicyRef: "policy_v1", PolicyMode: "inherit", Status: "completed"},
+	}
+
+	result := ValidatePolicyCompositionCase001(receipts)
+
+	if result.Match {
+		t.Fatalf("expected FAIL")
+	}
+
+	if len(result.Issues) == 0 {
+		t.Fatalf("expected policy drift issue")
+	}
+}
+
+func TestValidateAuthorityCompositionCase002PassWithOverride(t *testing.T) {
+	receipts := []AuthorityReceiptCase002{
+		{StepID: "step_1", PolicyRef: "policy_v1", Authority: "authority_A", AuthorityMode: "inherit"},
+		{StepID: "step_2", PolicyRef: "policy_v1", Authority: "authority_B", AuthorityMode: "override"},
+	}
+
+	result := ValidateAuthorityCompositionCase002(receipts)
+
+	if !result.Match {
+		t.Fatalf("expected PASS, got FAIL: %v", result.Issues)
+	}
+}
+
+func TestValidateAuthorityCompositionCase002FailsOnUndeclaredAuthorityDrift(t *testing.T) {
+	receipts := []AuthorityReceiptCase002{
+		{StepID: "step_1", PolicyRef: "policy_v1", Authority: "authority_A", AuthorityMode: "inherit"},
+		{StepID: "step_2", PolicyRef: "policy_v1", Authority: "authority_B", AuthorityMode: "inherit"},
+	}
+
+	result := ValidateAuthorityCompositionCase002(receipts)
+
+	if result.Match {
+		t.Fatalf("expected FAIL")
+	}
+
+	if len(result.Issues) == 0 {
+		t.Fatalf("expected authority drift issue")
+	}
+}
+
+func TestValidatePolicyCompositionCase001PassWithDeclaredPolicyEvolution(t *testing.T) {
     receipts := []PolicyReceiptCase001{
         {StepID: "step_1", PolicyRef: "policy_v1", PolicyMode: "inherit", Status: "completed"},
         {StepID: "step_2", PolicyRef: "policy_v2", PolicyMode: "override", Status: "completed"},
+        {StepID: "step_3", PolicyRef: "policy_v1", PolicyMode: "override", Status: "completed"},
     }
 
     result := ValidatePolicyCompositionCase001(receipts)
 
     if !result.Match {
         t.Fatalf("expected PASS, got FAIL: %v", result.Issues)
-    }
-}
-
-func TestValidatePolicyCompositionCase001FailsOnUndeclaredPolicyDrift(t *testing.T) {
-    receipts := []PolicyReceiptCase001{
-        {StepID: "step_1", PolicyRef: "policy_v1", PolicyMode: "inherit", Status: "completed"},
-        {StepID: "step_2", PolicyRef: "policy_v2", PolicyMode: "override", Status: "completed"},
-        {StepID: "step_3", PolicyRef: "policy_v1", PolicyMode: "inherit", Status: "completed"},
-    }
-
-    result := ValidatePolicyCompositionCase001(receipts)
-
-    if result.Match {
-        t.Fatalf("expected FAIL")
-    }
-
-    if len(result.Issues) == 0 {
-        t.Fatalf("expected policy drift issue")
     }
 }

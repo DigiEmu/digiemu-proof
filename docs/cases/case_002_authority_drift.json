@@ -1,0 +1,35 @@
+{
+  "case_id": "case_002_authority_drift",
+  "title": "Valid execution, invalid composition through authority drift",
+  "states": [
+    {
+      "state_id": "state_1",
+      "policy_ref": "policy_v1",
+      "authority": "authority_A"
+    },
+    {
+      "state_id": "state_2",
+      "policy_ref": "policy_v1",
+      "authority": "authority_B"
+    }
+  ],
+  "receipts": [
+    {
+      "step_id": "step_1",
+      "policy_ref": "policy_v1",
+      "authority": "authority_A",
+      "authority_mode": "inherit"
+    },
+    {
+      "step_id": "step_2",
+      "policy_ref": "policy_v1",
+      "authority": "authority_B",
+      "authority_mode": "inherit"
+    }
+  ],
+  "expected_result": {
+    "transition_integrity": "PASS",
+    "composition_integrity": "FAIL",
+    "reason": "authority changed without override"
+  }
+}
