@@ -6,140 +6,158 @@ Minimal prototype for deterministic execution and transition verification.
 
 ---
 
-## License
-
-Business Source License 1.1 (BSL)
-
----
-
 ## Overview
 
 DigiEmu Proof defines a minimal, verifiable standard for reconstructing and validating AI execution paths under deterministic conditions.
-
-It introduces a verification model based on:
-
-- deterministic state reconstruction  
-- transition-level verification  
-- chain continuity validation  
-- governance-aware decision verification  
-- cryptographic proof envelopes  
 
 ---
 
 ## Core Principle
 
-```
+```text
 same input → same reconstructed state → same hash
 ```
-
-Extended:
-
-```
-state₀ → transition → state₁ → ... → stateₙ
-```
-
 ---
 
-## Execution Model
+## System Flow
 
+```text
+flowchart LR
+    A[Intent] --> B[Policy Evaluation]
+    B --> C[Deterministic Action]
+    C --> D[Transition Receipt]
+    D --> E[Canonical State]
+    E --> F[Hash SHA-256]
+    F --> G[Replay]
+    G --> H[Verification PASS/FAIL]
 ```
-Intent
-→ Policy evaluation
-→ Deterministic action
-→ Transition receipt
-→ Canonical state
-→ Hash (SHA-256)
-→ Replay
-→ Verification (PASS / FAIL)
-```
-
 ---
 
-## Transition Proof
+## Transition Model
 
+```text
+flowchart LR
+    S0[State₀] --> R[Receipt]
+    R --> S1[State₁]
+
+    S0 -->|hash| H0[prev_state_hash]
+    S1 -->|hash| H1[next_state_hash]
 ```
-prev_state_hash → receipt → next_state_hash
-```
-
-Receipt binds:
-
-- intent_id  
-- policy_id  
-- policy_decision  
-- action_id  
-- action_type  
-- input_ref / output_ref  
-
 ---
 
 ## Chain Integrity
 
-```
-len(receipts) == len(states) - 1
-```
+```text
+flowchart LR
+    S0 --> S1 --> S2 --> S3
 
+    R1[receipt₁]
+    R2[receipt₂]
+    R3[receipt₃]
+
+    S0 --> R1 --> S1
+    S1 --> R2 --> S2
+    S2 --> R3 --> S3
 ```
+Rules:
+
+```text
+len(receipts) == len(states) - 1
 receipt[i].prev_state_hash == hash(states[i])
 receipt[i].next_state_hash == hash(states[i+1])
 ```
 
 ---
 
-## Decision Proof Surface
-
-Execution integrity answers:
-
-```
-Did the system do what the receipt says it did?
-```
-
-Decision integrity answers:
-
-```
-Was the action authorized under the governance state?
-```
-
----
-
 ## Proof Envelope
 
-```
-(prev_state → receipt → next_state)
-+ decision surface
-→ proof envelope → envelope_hash
+```text
+flowchart TB
+    S0[Prev State] --> R[Execution Receipt]
+    R --> S1[Next State]
+
+    R --> D[Decision Layer]
+
+    D --> E[Proof Envelope]
+    E --> H[Envelope Hash]
 ```
 
 Ensures:
 
-- execution correctness  
-- decision authorization  
-- cryptographic binding  
+* execution correctness
+* decision authorization
+* cryptographic binding
+
+---
+
+## Composition Integrity (v0.12)
+
+```text
+flowchart LR
+    E0[Envelope₀] --> L1[Link]
+    L1 --> E1[Envelope₁]
+    E1 --> L2[Link]
+    L2 --> E2[Envelope₂]
+```
+
+Verifies:
+
+- envelope hash continuity
+- authority context continuity
+- policy set continuity
+- capability scope continuity
+- dependency scope continuity
+- temporal sequence correctness
+
+---
+
+## Composition Hardening (v0.12.1)
+
+```text
+flowchart TB
+    A[Envelope Chain] --> B[Sequence Validation]
+    B --> C[Duplicate Detection]
+    C --> D[Link Validation]
+    D --> E[Tamper Detection]
+    E --> F[FAIL or PASS]
+```
+Adds:
+
+* strict sequence validation
+* no gaps allowed
+* monotonic ordering
+* duplicate envelope detection
+* required link field validation
 
 ---
 
 ## External Dependency Boundary (v0.11)
 
-Three zones:
+```text
+flowchart TB
+    A[Canonical State]
+    B[Verification Edge]
+    C[Governance Authority]
+    D[External World]
 
-1. Canonical State  
-2. Verification Edges  
-3. Governance Authority  
-
-Proof contract:
-
+    A --> B
+    B --> C
+    C --> D
 ```
+
+Contract:
+
 what is reconstructable
 what is externally attested
 what is governance-authorized
 what is outside scope
-```
 
----
+--- 
 
 ## Failure Semantics
 
-```
-valid execution   → PASS
+```text
+valid execution → PASS
 invalid execution → FAIL
 ```
 
@@ -149,89 +167,81 @@ Failure is reproducible.
 
 ## Determinism Constraints
 
-- no timestamps  
-- no randomness  
-- no hidden state  
-- no nondeterministic outputs  
+* no timestamps
+* no randomness
+* no hidden state
+* no nondeterministic outputs
 
 ---
 
 ## Boundary Principle
 
-Inside hash:
-
-- deterministic state  
-
-Outside hash:
-
-- environment  
-- metadata  
+```text
+inside hash  → deterministic state
+outside hash → environment / metadata
+```
 
 ---
 
 ## Purpose
 
-```
+```text
 state → transition → state → replay → verification
 ```
-
 ---
 
-## EU AI Act Alignment
+EU AI Act Alignment
 
 Supports:
 
-- traceability  
-- reproducibility  
-- auditability  
-- governance enforcement  
-
+```text
+traceability
+reproducibility
+auditability
+governance enforcement
+```
 ---
 
 ## System Class
 
-```
 Deterministic Knowledge Infrastructure
-```
 
 ---
 
-## Versions
-
-- v0.1.0 — execution proof  
-- v0.2 — boundary model  
-- v0.6 — transitions  
-- v0.7 — chain integrity  
-- v0.8 — receipts  
-- v0.9 — decision surface  
-- v0.10 — proof envelope  
-- v0.11 — external dependency boundary  
+Versions
+v0.1.0 — execution proof
+v0.2 — boundary model
+v0.6 — transitions
+v0.7 — chain integrity
+v0.8 — receipts
+v0.9 — decision surface
+v0.10 — proof envelope
+v0.11 — external dependency boundary
+v0.12 — composition integrity
+v0.12.1 — composition hardening
 
 ---
 
 ## Specifications
+Composition Integrity Spec v0.1
 
-- [Composition Integrity Spec v0.1](docs/specs/composition-integrity-v0.1.md)
-(PDF version available in the same folder)
 ---
 
 ## Authorship
 
-Bruno Baumgartner  
+Bruno Baumgartner
 DigiEmu
 
 ---
 
 ## Acknowledgements
 
-Gregory Whited  
+Gregory Whited
 
----
+--- 
 
 ## Attribution
 
 Please attribute:
 
 DigiEmu / Bruno Baumgartner
-
-
