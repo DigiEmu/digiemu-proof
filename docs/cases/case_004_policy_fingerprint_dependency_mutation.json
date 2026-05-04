@@ -1,0 +1,58 @@
+{
+  "case_id": "case_004_policy_fingerprint_dependency_mutation",
+  "title": "Declared policy evolution with failed policy context integrity through dependency mutation",
+  "schema_version": "case_004_v1",
+  "purpose": "Demonstrate that declared policy evolution can still fail verification when the effective policy context changes due to dependency mutation.",
+  "states": [
+    {
+      "state_id": "state_1",
+      "policy_ref": "policy_v1",
+      "dependency_ref": "dep_triage_rules_v1",
+      "policy_fingerprint": "fp_policy_v1_dep_v1"
+    },
+    {
+      "state_id": "state_2",
+      "policy_ref": "policy_v2",
+      "dependency_ref": "dep_triage_rules_v2",
+      "policy_fingerprint": "fp_policy_v2_dep_v2"
+    },
+    {
+      "state_id": "state_3",
+      "policy_ref": "policy_v3",
+      "dependency_ref": "dep_triage_rules_mutated",
+      "policy_fingerprint": "fp_policy_v3_dep_mutated"
+    }
+  ],
+  "receipts": [
+    {
+      "step_id": "step_1",
+      "policy_ref": "policy_v1",
+      "policy_mode": "inherit",
+      "dependency_ref": "dep_triage_rules_v1",
+      "policy_fingerprint": "fp_policy_v1_dep_v1",
+      "status": "completed"
+    },
+    {
+      "step_id": "step_2",
+      "policy_ref": "policy_v2",
+      "policy_mode": "override",
+      "dependency_ref": "dep_triage_rules_v2",
+      "policy_fingerprint": "fp_policy_v2_dep_v2",
+      "status": "completed"
+    },
+    {
+      "step_id": "step_3",
+      "policy_ref": "policy_v3",
+      "policy_mode": "inherit",
+      "dependency_ref": "dep_triage_rules_mutated",
+      "policy_fingerprint": "fp_policy_v3_dep_mutated",
+      "status": "completed"
+    }
+  ],
+  "expected_result": {
+    "transition_integrity": "PASS",
+    "declared_policy_evolution": "PASS",
+    "policy_context_integrity": "FAIL",
+    "reason": "step_3 inherits policy context but dependency_ref and policy_fingerprint changed due to dependency mutation"
+  }
+}
