@@ -761,6 +761,19 @@ func VerifyCompositionV12(
 		}, nil
 	}
 
+	if len(chain.Envelopes) == 1 && len(chain.Links) == 0 {
+		result, err := VerifyProofEnvelopeV11(prevStates[0], chain.Envelopes[0], nextStates[0])
+		if err != nil {
+			return CompositionVerifyResultV12{}, err
+		}
+
+		return CompositionVerifyResultV12{
+			Status: result.Status,
+			Match:  result.Match,
+			Issues: result.Issues,
+		}, nil
+	}
+
 	if len(chain.Envelopes) > 1 && len(chain.Links) != len(chain.Envelopes)-1 {
 		return CompositionVerifyResultV12{
 			Status: "FAIL",
@@ -770,6 +783,7 @@ func VerifyCompositionV12(
 	}
 
 	envelopeHashes := make([]string, len(chain.Envelopes))
+	seenEnvelopeHashes := map[string]bool{}
 
 	for i, envelope := range chain.Envelopes {
 		result, err := VerifyProofEnvelopeV11(prevStates[i], envelope, nextStates[i])
@@ -788,6 +802,11 @@ func VerifyCompositionV12(
 
 		envelopeHashes[i] = hash
 
+		if seenEnvelopeHashes[hash] {
+			issues = append(issues, "duplicate envelope hash")
+		}
+		seenEnvelopeHashes[hash] = true
+
 		if envelope.EnvelopeHash != hash {
 			issues = append(issues, "envelope_hash mismatch")
 		}
@@ -805,6 +824,18 @@ func VerifyCompositionV12(
 
 		if link.ToEnvelopeHash != envelopeHashes[i+1] {
 			issues = append(issues, "composition to_envelope_hash mismatch")
+		}
+
+		if link.AuthorityContext == "" {
+			issues = append(issues, "link authority_context missing")
+		}
+
+		if link.DependencyScope == "" {
+			issues = append(issues, "link dependency_scope missing")
+		}
+
+		if link.PolicySetHash == "" {
+			issues = append(issues, "link policy_set_hash missing")
 		}
 
 		if from.Decision.AuthorizationContext != to.Decision.AuthorizationContext {
@@ -829,6 +860,8 @@ func VerifyCompositionV12(
 
 		if link.SequenceTo <= link.SequenceFrom {
 			issues = append(issues, "temporal sequence invalid")
+		} else if link.SequenceTo != link.SequenceFrom+1 {
+			issues = append(issues, "sequence continuity gap")
 		}
 
 		if i > 0 {

@@ -1338,3 +1338,107 @@ func TestVerifyCompositionV12FailsOnLinkHashMismatch(t *testing.T) {
 		t.Fatalf("unexpected issues: %+v", result.Issues)
 	}
 }
+
+func TestVerifyCompositionV12FailsOnDuplicateEnvelope(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v12-a", "seq:1")
+	prev1, _, next1 := buildV12Envelope(t, "sha256:output-v12-b", "seq:2")
+
+	link := buildV12Link(t, envelope0, envelope0, 1, 2)
+
+	chain := CompositionChainV12{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope0},
+		Links:     []CompositionLinkV12{link},
+	}
+
+	result, err := VerifyCompositionV12(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on duplicate envelope")
+	}
+}
+
+func TestVerifyCompositionV12FailsOnSequenceGap(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v12-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v12-b", "seq:3")
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 3)
+
+	chain := CompositionChainV12{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+	}
+
+	result, err := VerifyCompositionV12(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on sequence gap")
+	}
+}
+
+func TestVerifyCompositionV12FailsOnMissingLinkFields(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v12-a", "seq:1")
+	prev1, envelope1, next1 := buildV12Envelope(t, "sha256:output-v12-b", "seq:2")
+
+	link := buildV12Link(t, envelope0, envelope1, 1, 2)
+	link.AuthorityContext = ""
+	link.DependencyScope = ""
+	link.PolicySetHash = ""
+
+	chain := CompositionChainV12{
+		Envelopes: []ProofEnvelopeV11{envelope0, envelope1},
+		Links:     []CompositionLinkV12{link},
+	}
+
+	result, err := VerifyCompositionV12(
+		[]CanonicalStateV06{prev0, prev1},
+		chain,
+		[]CanonicalStateV06{next0, next1},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Match {
+		t.Fatal("expected FAIL on missing link fields")
+	}
+}
+
+func TestVerifyCompositionV12PassesSingleEnvelopeWithoutLinks(t *testing.T) {
+	prev0, envelope0, next0 := buildV12Envelope(t, "sha256:output-v12-a", "seq:1")
+
+	chain := CompositionChainV12{
+		Envelopes: []ProofEnvelopeV11{envelope0},
+		Links:     []CompositionLinkV12{},
+	}
+
+	result, err := VerifyCompositionV12(
+		[]CanonicalStateV06{prev0},
+		chain,
+		[]CanonicalStateV06{next0},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !result.Match {
+		t.Fatalf("expected PASS for single envelope without links, got issues: %+v", result.Issues)
+	}
+
+	if result.Status != "PASS" {
+		t.Fatalf("expected PASS, got %s", result.Status)
+	}
+}
