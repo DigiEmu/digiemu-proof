@@ -179,3 +179,26 @@ type ProofEnvelopeVerifyResultV11 struct {
 	Match  bool     `json:"match"`
 	Issues []string `json:"issues"`
 }
+
+type CompositionLinkV12 struct {
+	FromEnvelopeHash string `json:"from_envelope_hash"`
+	ToEnvelopeHash   string `json:"to_envelope_hash"`
+
+	AuthorityContext string `json:"authority_context"`
+	DependencyScope  string `json:"dependency_scope"`
+	PolicySetHash    string `json:"policy_set_hash"`
+
+	SequenceFrom int `json:"sequence_from"`
+	SequenceTo   int `json:"sequence_to"`
+}
+
+type CompositionChainV12 struct {
+	Envelopes []ProofEnvelopeV11   `json:"envelopes"`
+	Links     []CompositionLinkV12 `json:"links"`
+}
+
+type CompositionVerifyResultV12 struct {
+	Status string   `json:"status"`
+	Match  bool     `json:"match"`
+	Issues []string `json:"issues"`
+}
