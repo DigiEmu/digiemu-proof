@@ -1844,3 +1844,17 @@ func TestValidateAuthorityCompositionCase002FailsOnUndeclaredAuthorityDrift(t *t
 		t.Fatalf("expected authority drift issue")
 	}
 }
+
+func TestValidatePolicyCompositionCase001PassWithDeclaredPolicyEvolution(t *testing.T) {
+    receipts := []PolicyReceiptCase001{
+        {StepID: "step_1", PolicyRef: "policy_v1", PolicyMode: "inherit", Status: "completed"},
+        {StepID: "step_2", PolicyRef: "policy_v2", PolicyMode: "override", Status: "completed"},
+        {StepID: "step_3", PolicyRef: "policy_v1", PolicyMode: "override", Status: "completed"},
+    }
+
+    result := ValidatePolicyCompositionCase001(receipts)
+
+    if !result.Match {
+        t.Fatalf("expected PASS, got FAIL: %v", result.Issues)
+    }
+}
