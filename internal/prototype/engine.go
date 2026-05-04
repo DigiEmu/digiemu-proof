@@ -909,3 +909,169 @@ func dependencyScopeV12(dependencies []ExternalDependencyRefV11) string {
 
 	return HashStringV06(scope)
 }
+
+func VerifyCompositionV13(
+	prevStates []CanonicalStateV06,
+	chain CompositionChainV13,
+	nextStates []CanonicalStateV06,
+) (CompositionVerifyResultV13, error) {
+	issues := []string{}
+
+	if len(chain.Envelopes) == 0 {
+		return CompositionVerifyResultV13{
+			Status: "FAIL",
+			Match:  false,
+			Issues: []string{"composition envelopes missing"},
+		}, nil
+	}
+
+	if len(prevStates) != len(chain.Envelopes) || len(nextStates) != len(chain.Envelopes) {
+		return CompositionVerifyResultV13{
+			Status: "FAIL",
+			Match:  false,
+			Issues: []string{"composition state envelope length mismatch"},
+		}, nil
+	}
+
+	if len(chain.Envelopes) == 1 && len(chain.Links) == 0 {
+		result, err := VerifyProofEnvelopeV11(prevStates[0], chain.Envelopes[0], nextStates[0])
+		if err != nil {
+			return CompositionVerifyResultV13{}, err
+		}
+
+		return CompositionVerifyResultV13{
+			Status: result.Status,
+			Match:  result.Match,
+			Issues: result.Issues,
+		}, nil
+	}
+
+	if len(chain.Envelopes) > 1 && len(chain.Links) != len(chain.Envelopes)-1 {
+		return CompositionVerifyResultV13{
+			Status: "FAIL",
+			Match:  false,
+			Issues: []string{"composition link length mismatch"},
+		}, nil
+	}
+
+	envelopeHashes := make([]string, len(chain.Envelopes))
+	seenEnvelopeHashes := map[string]bool{}
+
+	for i, envelope := range chain.Envelopes {
+		result, err := VerifyProofEnvelopeV11(prevStates[i], envelope, nextStates[i])
+		if err != nil {
+			return CompositionVerifyResultV13{}, err
+		}
+
+		if !result.Match {
+			issues = append(issues, "envelope_"+envelope.EnvelopeHash+" invalid")
+		}
+
+		hash, err := HashProofEnvelopeV11(envelope)
+		if err != nil {
+			return CompositionVerifyResultV13{}, err
+		}
+
+		envelopeHashes[i] = hash
+
+		if seenEnvelopeHashes[hash] {
+			issues = append(issues, "duplicate envelope hash")
+		}
+		seenEnvelopeHashes[hash] = true
+
+		if envelope.EnvelopeHash != hash {
+			issues = append(issues, "envelope_hash mismatch")
+		}
+	}
+
+	for i := 0; i < len(chain.Links); i++ {
+		link := chain.Links[i]
+
+		from := chain.Envelopes[i]
+		to := chain.Envelopes[i+1]
+
+		if link.FromEnvelopeHash != envelopeHashes[i] {
+			issues = append(issues, "composition from_envelope_hash mismatch")
+		}
+
+		if link.ToEnvelopeHash != envelopeHashes[i+1] {
+			issues = append(issues, "composition to_envelope_hash mismatch")
+		}
+
+		if chain.Boundary.AuthorityInvariant {
+			if link.AuthorityContext == "" {
+				issues = append(issues, "link authority_context missing")
+			}
+
+			if from.Decision.AuthorizationContext != to.Decision.AuthorizationContext {
+				issues = append(issues, "authority continuity mismatch")
+			}
+
+			if link.AuthorityContext != from.Decision.AuthorizationContext {
+				issues = append(issues, "composition authority_context mismatch")
+			}
+		}
+
+		if chain.Boundary.PolicyInvariant {
+			if link.PolicySetHash == "" {
+				issues = append(issues, "link policy_set_hash missing")
+			}
+
+			if from.Decision.PolicySetHash != to.Decision.PolicySetHash {
+				issues = append(issues, "policy continuity mismatch")
+			}
+
+			if link.PolicySetHash != from.Decision.PolicySetHash {
+				issues = append(issues, "composition policy_set_hash mismatch")
+			}
+		}
+
+		if chain.Boundary.CapabilityInvariant {
+			if from.Decision.CapabilityScope != to.Decision.CapabilityScope {
+				issues = append(issues, "capability continuity mismatch")
+			}
+		}
+
+		if chain.Boundary.DependencyInvariant {
+			if link.DependencyScope == "" {
+				issues = append(issues, "link dependency_scope missing")
+			}
+
+			fromDependencyScope := dependencyScopeV12(from.ExternalDependencies)
+			toDependencyScope := dependencyScopeV12(to.ExternalDependencies)
+
+			if fromDependencyScope != toDependencyScope {
+				issues = append(issues, "dependency continuity mismatch")
+			}
+
+			if link.DependencyScope != fromDependencyScope {
+				issues = append(issues, "composition dependency_scope mismatch")
+			}
+		}
+
+		if link.SequenceTo <= link.SequenceFrom {
+			issues = append(issues, "temporal sequence invalid")
+		} else if chain.Boundary.TemporalInvariant && link.SequenceTo != link.SequenceFrom+1 {
+			issues = append(issues, "sequence continuity gap")
+		}
+
+		if chain.Boundary.TemporalInvariant && i > 0 {
+			previousLink := chain.Links[i-1]
+			if link.SequenceFrom != previousLink.SequenceTo {
+				issues = append(issues, "temporal continuity mismatch")
+			}
+		}
+	}
+
+	match := len(issues) == 0
+	status := "FAIL"
+	if match {
+		status = "PASS"
+	}
+
+	return CompositionVerifyResultV13{
+		Status: status,
+		Match:  match,
+		Issues: issues,
+	}, nil
+}
