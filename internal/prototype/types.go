@@ -202,3 +202,23 @@ type CompositionVerifyResultV12 struct {
 	Match  bool     `json:"match"`
 	Issues []string `json:"issues"`
 }
+
+type ContinuityBoundaryV13 struct {
+	AuthorityInvariant  bool `json:"authority_invariant"`
+	PolicyInvariant     bool `json:"policy_invariant"`
+	CapabilityInvariant bool `json:"capability_invariant"`
+	DependencyInvariant bool `json:"dependency_invariant"`
+	TemporalInvariant   bool `json:"temporal_invariant"`
+}
+
+type CompositionChainV13 struct {
+	Envelopes []ProofEnvelopeV11    `json:"envelopes"`
+	Links     []CompositionLinkV12  `json:"links"`
+	Boundary  ContinuityBoundaryV13 `json:"boundary"`
+}
+
+type CompositionVerifyResultV13 struct {
+	Status string   `json:"status"`
+	Match  bool     `json:"match"`
+	Issues []string `json:"issues"`
+}
