@@ -12,6 +12,20 @@ DigiEmu Proof defines a minimal, verifiable standard for reconstructing and vali
 
 ---
 
+## Governance Demonstration
+
+See the full governance demo:
+
+`docs/demo/governance_demo_case_001_004.md`
+
+It demonstrates:
+
+- undeclared drift → FAIL
+- declared evolution → PASS
+- hidden context mutation → FAIL
+
+---
+
 ## Core Principle
 
     same input → same reconstructed state → same hash
