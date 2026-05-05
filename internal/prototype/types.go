@@ -261,3 +261,15 @@ type AuthorityReceiptCase002 struct {
 	Authority     string `json:"authority"`
 	AuthorityMode string `json:"authority_mode"`
 }
+
+type PolicyFingerprintReceipt struct {
+	StepID            string
+	PolicyMode        string
+	PolicyFingerprint string
+}
+
+type PolicyFingerprintResult struct {
+	Match  bool
+	Status string
+	Issues []string
+}

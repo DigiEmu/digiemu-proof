@@ -1230,19 +1230,6 @@ func ValidateAuthorityCompositionCase002(receipts []AuthorityReceiptCase002) Com
 		Issues: issues,
 	}
 }
-
-type PolicyFingerprintReceipt struct {
-	StepID            string
-	PolicyMode        string
-	PolicyFingerprint string
-}
-
-type PolicyFingerprintResult struct {
-	Match  bool
-	Status string
-	Issues []string
-}
-
 func ValidatePolicyFingerprint(receipts []PolicyFingerprintReceipt) PolicyFingerprintResult {
 	var issues []string
 
