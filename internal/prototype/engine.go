@@ -1260,3 +1260,105 @@ func ValidatePolicyFingerprint(receipts []PolicyFingerprintReceipt) PolicyFinger
 		Issues: issues,
 	}
 }
+
+func ValidateGovernanceRecordContinuityCase005(record GovernanceRecordCase005) CompositionVerifyResultV13 {
+	issues := []string{}
+
+	if record.RecordID == "" {
+		issues = append(issues, "record_id missing")
+	}
+
+	if len(record.Steps) == 0 {
+		return CompositionVerifyResultV13{
+			Status: "FAIL",
+			Match:  false,
+			Issues: []string{"governance record steps missing"},
+		}
+	}
+
+	currentPolicyRef := record.Steps[0].DeclaredPolicyRef
+	currentAuthority := record.Steps[0].DeclaredAuthority
+	currentPolicyFingerprint := record.Steps[0].PolicyFingerprint
+	currentDependencyFingerprint := record.Steps[0].DependencyFingerprint
+	currentAuthorityAnchor := record.Steps[0].AuthorityAnchor
+
+	for i, step := range record.Steps {
+		if step.StepID == "" {
+			issues = append(issues, "step_id missing")
+		}
+
+		if step.Stage == "" {
+			issues = append(issues, "stage missing")
+		}
+
+		if step.DeclaredPolicyRef == "" {
+			issues = append(issues, "declared_policy_ref missing")
+		}
+
+		if step.DeclaredAuthority == "" {
+			issues = append(issues, "declared_authority missing")
+		}
+
+		if step.DeclaredContinuityMode != "inherit" && step.DeclaredContinuityMode != "override" {
+			issues = append(issues, "declared_continuity_mode invalid")
+		}
+
+		if step.PolicyFingerprint == "" {
+			issues = append(issues, "policy_fingerprint missing")
+		}
+
+		if step.DependencyFingerprint == "" {
+			issues = append(issues, "dependency_fingerprint missing")
+		}
+
+		if step.AuthorityAnchor == "" {
+			issues = append(issues, "authority_anchor missing")
+		}
+
+		if i == 0 {
+			continue
+		}
+
+		if step.DeclaredContinuityMode == "inherit" {
+			if step.DeclaredPolicyRef != currentPolicyRef {
+				issues = append(issues, "policy_ref drift on inherit")
+			}
+
+			if step.DeclaredAuthority != currentAuthority {
+				issues = append(issues, "authority drift on inherit")
+			}
+
+			if step.PolicyFingerprint != currentPolicyFingerprint {
+				issues = append(issues, "policy_fingerprint drift on inherit")
+			}
+
+			if step.DependencyFingerprint != currentDependencyFingerprint {
+				issues = append(issues, "dependency_fingerprint drift on inherit")
+			}
+
+			if step.AuthorityAnchor != currentAuthorityAnchor {
+				issues = append(issues, "authority_anchor drift on inherit")
+			}
+		}
+
+		if step.DeclaredContinuityMode == "override" {
+			currentPolicyRef = step.DeclaredPolicyRef
+			currentAuthority = step.DeclaredAuthority
+			currentPolicyFingerprint = step.PolicyFingerprint
+			currentDependencyFingerprint = step.DependencyFingerprint
+			currentAuthorityAnchor = step.AuthorityAnchor
+		}
+	}
+
+	match := len(issues) == 0
+	status := "FAIL"
+	if match {
+		status = "PASS"
+	}
+
+	return CompositionVerifyResultV13{
+		Status: status,
+		Match:  match,
+		Issues: issues,
+	}
+}

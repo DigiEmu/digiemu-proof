@@ -273,3 +273,22 @@ type PolicyFingerprintResult struct {
 	Status string
 	Issues []string
 }
+
+// --- Case 005 Governance Record Continuity ---
+
+type GovernanceRecordStepCase005 struct {
+	StepID                 string `json:"step_id"`
+	Stage                  string `json:"stage"`
+	DeclaredPolicyRef      string `json:"declared_policy_ref"`
+	DeclaredAuthority      string `json:"declared_authority"`
+	DeclaredContinuityMode string `json:"declared_continuity_mode"`
+
+	PolicyFingerprint     string `json:"policy_fingerprint"`
+	DependencyFingerprint string `json:"dependency_fingerprint"`
+	AuthorityAnchor       string `json:"authority_anchor"`
+}
+
+type GovernanceRecordCase005 struct {
+	RecordID string                        `json:"record_id"`
+	Steps    []GovernanceRecordStepCase005 `json:"steps"`
+}
