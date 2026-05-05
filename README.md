@@ -293,7 +293,14 @@ See: docs/cases/case_001_policy_drift.json
 
 ## Specifications
 
-Composition Integrity Spec v0.1
+- [Composition Integrity Spec v0.1](docs/specs/composition-integrity-v0.1.md)
+- [Policy Fingerprint Spec](docs/specs/policy_fingerprint_spec.md)
+
+---
+
+## Governance Demonstration
+
+- [Governance Demo Case 001–004](docs/demo/governance_demo_case_001_004.md)
 
 ---
 
