@@ -1,0 +1,70 @@
+{
+  "case_id": "case_005_governance_record_continuity",
+  "title": "Governance Record Continuity Boundary",
+  "status": "sample-artifact",
+  "purpose": "Demonstrates the boundary between declared governance continuity and independently verifiable continuity anchors.",
+  "boundary_model": {
+    "governance_record": "What was declared?",
+    "digiemu_proof": "Can the declared continuity be independently verified?"
+  },
+  "principle": "declared continuity != verified continuity",
+  "governance_record": {
+    "record_id": "gov-record-005",
+    "export_version": "governance-record.v0.1",
+    "exported_at": "metadata-outside-verification-hash",
+    "steps": [
+      {
+        "step_id": "step_1",
+        "stage": "check",
+        "status": "completed",
+        "declared_policy_ref": "policy_v1",
+        "declared_authority": "reviewer_A",
+        "declared_continuity_mode": "inherit",
+        "review_state": "checked",
+        "approval_state": "not_approved"
+      },
+      {
+        "step_id": "step_2",
+        "stage": "review",
+        "status": "completed",
+        "declared_policy_ref": "policy_v1",
+        "declared_authority": "reviewer_A",
+        "declared_continuity_mode": "inherit",
+        "review_state": "reviewed",
+        "approval_state": "not_approved"
+      },
+      {
+        "step_id": "step_3",
+        "stage": "approve",
+        "status": "completed",
+        "declared_policy_ref": "policy_v1",
+        "declared_authority": "reviewer_A",
+        "declared_continuity_mode": "inherit",
+        "review_state": "reviewed",
+        "approval_state": "approved"
+      }
+    ]
+  },
+  "verification_anchors": {
+    "baseline": {
+      "step_id": "step_1",
+      "policy_fingerprint": "policy_fp_v1",
+      "dependency_fingerprint": "dependency_fp_v1",
+      "authority_anchor": "authority_anchor_A"
+    },
+    "current": {
+      "step_id": "step_3",
+      "policy_fingerprint": "policy_fp_v1",
+      "dependency_fingerprint": "dependency_fp_MUTATED",
+      "authority_anchor": "authority_anchor_A"
+    }
+  },
+  "expected_verification_outcome": {
+    "status": "FAIL",
+    "match": false,
+    "issues": [
+      "dependency_fingerprint drift on inherit"
+    ]
+  },
+  "interpretation": "The governance record declares inherited continuity, but the dependency fingerprint changes without an explicit override. DigiEmu Proof should therefore return FAIL."
+}
