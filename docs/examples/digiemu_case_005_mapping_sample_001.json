@@ -1,0 +1,110 @@
+{
+  "mapping_id": "digiemu-case-005-aipa-mapping-sample-001",
+  "title": "AIPA Governance Record to DigiEmu Case 005 Mapping Sample",
+  "status": "mapping-artifact",
+  "purpose": "Maps a minimal AIPA governance record declaration to DigiEmu Case 005 verification anchors and expected verification outcome.",
+  "source_artifact": "docs/examples/aipa_governance_record_sample_001.json",
+  "target_case": "docs/cases/case_005_governance_record_continuity.json",
+
+  "boundary_model": {
+    "aipa": "Declares governance state, continuity mode, review status, approval context, and authority semantics.",
+    "digiemu_proof": "Independently verifies whether the declared continuity survives deterministic anchor validation."
+  },
+
+  "principle": "declared continuity != verified continuity",
+
+  "aipa_declaration_fields": {
+    "record_id": "aipa-gr-005-sample-001",
+    "record_type": "governance_continuity_declaration",
+    "schema_version": "0.1.0",
+    "stage": "review",
+    "status": "approved_for_boundary_test",
+    "declared_policy_ref": "aipa-policy-ai-output-review-v1",
+    "declared_policy_version": "1.0.0",
+    "declared_policy_scope": "AI-generated governance record review",
+    "declared_authority_id": "aipa-review-board-sample",
+    "declared_authority_role": "governance_reviewer",
+    "declared_authority_context": "sample reviewer approval for boundary validation",
+    "continuity_mode": "inherit",
+    "previous_record_id": "aipa-gr-005-sample-000",
+    "declared_continuity_claim": "This governance record inherits the prior policy and authority context without declared override.",
+    "review_status": "reviewed",
+    "approval_status": "approved",
+    "reviewer": "sample-reviewer",
+    "approval_timestamp": "2026-05-08T18:40:00Z",
+    "export_id": "aipa-export-005-sample-001",
+    "exported_at": "2026-05-08T18:45:00Z",
+    "export_format": "json",
+    "source_system": "AIPA Governance Record Studio"
+  },
+
+  "digiemu_verification_inputs": {
+    "record_id": "aipa-gr-005-sample-001",
+    "declared_policy_ref": "aipa-policy-ai-output-review-v1",
+    "declared_authority": "aipa-review-board-sample",
+    "declared_continuity_mode": "inherit",
+
+    "baseline": {
+      "previous_record_id": "aipa-gr-005-sample-000",
+      "policy_fingerprint": "policy_fp_v1",
+      "dependency_fingerprint": "dependency_fp_v1",
+      "authority_anchor": "authority_anchor_A"
+    },
+
+    "current": {
+      "record_id": "aipa-gr-005-sample-001",
+      "policy_fingerprint": "policy_fp_v1",
+      "dependency_fingerprint": "dependency_fp_MUTATED",
+      "authority_anchor": "authority_anchor_A"
+    }
+  },
+
+  "expected_digiemu_outcome": {
+    "status": "FAIL",
+    "match": false,
+    "issues": [
+      "dependency_fingerprint drift on inherit"
+    ]
+  },
+
+  "field_boundary": {
+    "aipa_declaration_fields": [
+      "record_id",
+      "record_type",
+      "schema_version",
+      "stage",
+      "status",
+      "declared_policy",
+      "declared_authority",
+      "continuity",
+      "review_state",
+      "export_metadata"
+    ],
+    "digiemu_verification_anchors": [
+      "policy_fingerprint",
+      "dependency_fingerprint",
+      "authority_anchor",
+      "previous baseline",
+      "current values",
+      "PASS/FAIL",
+      "issue list"
+    ],
+    "shared_boundary_fields": [
+      "policy_ref",
+      "authority_id",
+      "authority_context",
+      "continuity_mode",
+      "previous_record_id",
+      "exported_at",
+      "schema_version"
+    ],
+    "intentionally_separate_fields": [
+      "AIPA review/approval state remains a governance declaration, not a verification result.",
+      "DigiEmu PASS/FAIL remains independently derived, not declared by AIPA.",
+      "Fingerprints and anchors remain verification evidence, not governance claims.",
+      "AIPA can declare continuity, but DigiEmu Proof decides whether that continuity verifies."
+    ]
+  },
+
+  "interpretation": "The AIPA governance record declares inherited continuity and approved review state. DigiEmu Proof evaluates the corresponding anchors and returns FAIL because the dependency fingerprint changes without explicit override."
+}

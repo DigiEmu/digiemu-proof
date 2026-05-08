@@ -1,0 +1,41 @@
+{
+  "aipa_governance_record": {
+    "record_id": "aipa-gr-005-sample-001",
+    "record_type": "governance_continuity_declaration",
+    "schema_version": "0.1.0",
+    "stage": "review",
+    "status": "approved_for_boundary_test",
+
+    "declared_policy": {
+      "policy_ref": "aipa-policy-ai-output-review-v1",
+      "policy_version": "1.0.0",
+      "policy_scope": "AI-generated governance record review"
+    },
+
+    "declared_authority": {
+      "authority_id": "aipa-review-board-sample",
+      "authority_role": "governance_reviewer",
+      "authority_context": "sample reviewer approval for boundary validation"
+    },
+
+    "continuity": {
+      "continuity_mode": "inherit",
+      "previous_record_id": "aipa-gr-005-sample-000",
+      "declared_continuity_claim": "This governance record inherits the prior policy and authority context without declared override."
+    },
+
+    "review_state": {
+      "review_status": "reviewed",
+      "approval_status": "approved",
+      "reviewer": "sample-reviewer",
+      "approval_timestamp": "2026-05-08T18:40:00Z"
+    },
+
+    "export_metadata": {
+      "export_id": "aipa-export-005-sample-001",
+      "exported_at": "2026-05-08T18:45:00Z",
+      "export_format": "json",
+      "source_system": "AIPA Governance Record Studio"
+    }
+  }
+}
