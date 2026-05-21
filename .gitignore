@@ -1,0 +1,11 @@
+﻿# Local TBN secrets / private test evidence
+testdata/*.local.json
+testdata/tbn_verify_response.local.json
+
+# Environment files
+.env
+.env.local
+
+# API keys / temporary secrets
+*.key
+*.pem.local
