@@ -1,0 +1,23 @@
+{
+  "agent_id": "agent.demo.001",
+  "external_references": {
+    "digiemu_schema_version": "digiemu.snapshot.v1",
+    "digiemu_snapshot_hash": "sha256:cdddcf74e59559fa53d482ebd4cd2ac645aba3606d307a650b44997c0560bcdc"
+  },
+  "moment_id": "moment.2026-05-21T12-00-00Z",
+  "schema_version": "tbn.verification_result.v1",
+  "tbn_signature": "<redacted>",
+  "trust_state": {
+    "agent_verified": true,
+    "cert_level": "STANDARD",
+    "company": "DigiEmu",
+    "identity_status": "verified",
+    "owner": "Bruno Baumgartner",
+    "trust_status": "valid"
+  },
+  "verification_result": {
+    "method": "tbn_agent_trust_verification",
+    "status": "PASS",
+    "verified_at": "2026-05-21T17:14:22Z"
+  }
+}
